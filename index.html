@@ -171,6 +171,7 @@
       flex: 1;
       overflow-y: auto;
       padding: 0 8px;
+      position: relative;
     }
     .selector-row {
       display: flex;
@@ -185,6 +186,17 @@
       background: var(--card);
       color: var(--text);
       font-size: 0.95rem;
+    }
+    #bible-search {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--text);
+      font-size: 0.95rem;
+      display: block;
     }
     .verse-display {
       background: var(--card);
@@ -227,6 +239,36 @@
     }
     .bottom-bar .share-btn { background: var(--success); }
     .bottom-bar button i { font-size: 1.1rem; }
+
+    /* === FIXED NAV BUTTONS (CENTERED & FULLY VISIBLE) === */
+    #bible-nav-buttons {
+      display: none;
+      position: sticky;
+      bottom: 10px;
+      left: 0;
+      right: 0;
+      z-index: 5;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+    }
+    #bible-nav-buttons button {
+      padding: 10px 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 24px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      min-width: 80px;
+    }
+
+    /* Show only on touch devices */
+    @media (hover: none) and (pointer: coarse) {
+      #bible-nav-buttons {
+        display: flex !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -270,8 +312,13 @@
         <select id="book-select" onchange="loadChapters()" disabled><option>புத்தகம் தேர்வு செய்யப்படவில்லை</option></select>
         <select id="chapter-select" onchange="loadVerses()" disabled><option>அதிகாரம் தேர்வு செய்யப்படவில்லை</option></select>
       </div>
+      <input type="text" id="bible-search" placeholder="Search entire Bible..." oninput="searchWholeBible(this.value)">
       <div class="verse-display" id="verse-display">
         உங்கள் சாதனத்திலிருந்து ஒரு பைபிள் JSON கோப்பை ஏற்றவும்.
+      </div>
+      <div id="bible-nav-buttons">
+        <button id="prev-chap-btn" onclick="navigateChapter(-1)">← Prev</button>
+        <button id="next-chap-btn" onclick="navigateChapter(1)">Next →</button>
       </div>
     </div>
   </div>
@@ -287,7 +334,7 @@
   <!-- Hidden file input -->
   <input type="file" id="bible-file-input" accept=".json" style="display:none" onchange="loadBibleFromFile(this.files[0])">
   <script>
-    // === BIBLE DATA LOADER (unchanged) ===
+    // === BIBLE LOADER WITH CACHING ===
     let TAMIL_BIBLE = null;
     const TAMIL_BOOK_NAMES = [
       "ஆதியாகமம்", "யாத்திராகமம்", "லேவியராகமம்", "எண்ணாகமம்", "உபாகமம்", "யோசுவா", "நியாயாதிபதிகள்", "ரூத்", "1 சாமுவேல்",
@@ -298,6 +345,7 @@
       "எபேசியர்", "பிலிப்பியர்", "கொலோசெயர்", "1 தெசலோனிக்கேயர்", "2 தெசலோனிக்கேயர்", "1 தீமோத்தேயு", "2 தீமோத்தேயு", "தீத்து",
       "பிலேமோன்", "எபிரெயர்", "யாக்கோபு", "1 பேதுரு", "2 பேதுரு", "1 யோவான்", "2 யோவான்", "3 யோவான்", "யூதா", "வெளி"
     ];
+
     function loadBibleFromFile(file) {
       if (!file) return;
       const reader = new FileReader();
@@ -314,6 +362,12 @@
                 return { name, chapters };
               })
             };
+            try {
+              localStorage.setItem('cachedBible', JSON.stringify(TAMIL_BIBLE));
+              localStorage.setItem('cachedBibleFilename', file.name);
+            } catch (err) {
+              console.warn('Bible too large for localStorage');
+            }
             document.getElementById('book-select').disabled = false;
             populateBooks();
             document.getElementById('verse-display').innerHTML = 'புத்தகத்தைத் தேர்ந்தெடுக்கவும்.';
@@ -328,6 +382,7 @@
       };
       reader.readAsText(file);
     }
+
     function resetBibleUI() {
       document.getElementById('book-select').disabled = true;
       document.getElementById('chapter-select').disabled = true;
@@ -335,6 +390,7 @@
       document.getElementById('chapter-select').innerHTML = '<option>அதிகாரம் தேர்வு செய்யப்படவில்லை</option>';
       document.getElementById('verse-display').innerHTML = 'உங்கள் சாதனத்திலிருந்து ஒரு பைபிள் JSON கோப்பை ஏற்றவும்.';
     }
+
     function populateBooks() {
       const select = document.getElementById('book-select');
       select.innerHTML = '';
@@ -346,6 +402,7 @@
       });
       loadChapters();
     }
+
     function loadChapters() {
       const bookIndex = document.getElementById('book-select').value;
       const chapterSelect = document.getElementById('chapter-select');
@@ -361,6 +418,7 @@
       chapterSelect.disabled = false;
       loadVerses();
     }
+
     function loadVerses() {
       const bookIndex = document.getElementById('book-select').value;
       const chapterIndex = document.getElementById('chapter-select').value;
@@ -378,13 +436,113 @@
       display.innerHTML = html || 'வசனங்கள் கிடைக்கவில்லை.';
     }
 
-    // === LEAP-YEAR AWARE READING PLAN ===
-    function isLeapYear(year) {
-      return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    // === WHOLE BIBLE SEARCH ===
+    function searchWholeBible(query) {
+      query = query.trim().toLowerCase();
+      const display = document.getElementById('verse-display');
+      if (!TAMIL_BIBLE || !query) {
+        if (document.getElementById('book-select').value !== '' && document.getElementById('chapter-select').value !== '') {
+          loadVerses();
+        } else {
+          display.innerHTML = 'பைபிளை ஏற்றவும் அல்லது அதிகாரத்தைத் தேர்ந்தெடுக்கவும்.';
+        }
+        return;
+      }
+
+      let results = [];
+      TAMIL_BIBLE.books.forEach((book, bookIndex) => {
+        book.chapters.forEach((chapter, chapIndex) => {
+          chapter.forEach((verseText, verseIndex) => {
+            if (verseText.toLowerCase().includes(query)) {
+              results.push({
+                book: book.name,
+                chapter: chapIndex + 1,
+                verseNum: verseIndex + 1,
+                text: verseText
+              });
+            }
+          });
+        });
+      });
+
+      if (results.length === 0) {
+        display.innerHTML = '<p style="text-align:center; color:var(--text-secondary);">தேடல் முடிவுகள் இல்லை.</p>';
+      } else {
+        let html = `<p style="margin-bottom:12px;"><strong>${results.length} முடிவுகள் கிடைத்தன:</strong></p>`;
+        results.forEach(r => {
+          html += `<p><strong>${r.book} ${r.chapter}:${r.verseNum}</strong><br><span class="verse-text">${r.text}</span></p>`;
+        });
+        display.innerHTML = html;
+      }
     }
 
-    // Jan 1 – Feb 28 (59 days)
-    const COMMON_START = [
+    // === NAVIGATION LOGIC ===
+    let navTimeout = null;
+    function navigateChapter(direction) {
+      const bookSelect = document.getElementById('book-select');
+      const chapterSelect = document.getElementById('chapter-select');
+      const bookIndex = parseInt(bookSelect.value);
+      const chapterIndex = parseInt(chapterSelect.value);
+      if (isNaN(bookIndex) || isNaN(chapterIndex)) return;
+
+      const totalChapters = TAMIL_BIBLE.books[bookIndex].chapters.length;
+      let newChapterIndex = chapterIndex + direction;
+
+      if (newChapterIndex < 0) {
+        let newBookIndex = bookIndex - 1;
+        if (newBookIndex < 0) return;
+        bookSelect.value = newBookIndex;
+        loadChapters();
+        const newTotal = TAMIL_BIBLE.books[newBookIndex].chapters.length;
+        chapterSelect.value = newTotal - 1;
+      } else if (newChapterIndex >= totalChapters) {
+        let newBookIndex = bookIndex + 1;
+        if (newBookIndex >= TAMIL_BIBLE.books.length) return;
+        bookSelect.value = newBookIndex;
+        loadChapters();
+        chapterSelect.value = 0;
+      } else {
+        chapterSelect.value = newChapterIndex;
+      }
+      loadVerses();
+      showNavButtons(); // Keep visible after tap
+    }
+
+    function showNavButtons() {
+      if (!TAMIL_BIBLE) return;
+      const nav = document.getElementById('bible-nav-buttons');
+      nav.style.display = 'flex';
+      clearTimeout(navTimeout);
+      navTimeout = setTimeout(() => {
+        nav.style.display = 'none';
+      }, 3000);
+    }
+
+    document.getElementById('verse-display').addEventListener('touchstart', (e) => {
+      showNavButtons();
+    });
+
+    // === AUTO-LOAD CACHED BIBLE ===
+    function loadCachedBible() {
+      try {
+        const cached = localStorage.getItem('cachedBible');
+        if (cached) {
+          TAMIL_BIBLE = JSON.parse(cached);
+          document.getElementById('book-select').disabled = false;
+          populateBooks();
+          document.getElementById('verse-display').innerHTML = `Cached: ${localStorage.getItem('cachedBibleFilename') || 'Bible'}`;
+          return true;
+        }
+      } catch (err) {
+        console.error('Cached Bible load failed:', err);
+        localStorage.removeItem('cachedBible');
+        localStorage.removeItem('cachedBibleFilename');
+      }
+      return false;
+    }
+
+    // === READING PLAN (NON-LEAP YEAR) ===
+    const READING_PLAN_EN = [
       { morning: ["Mat.1"], evening: ["Gen.1-3"] },
       { morning: ["Mat.2"], evening: ["Gen.4-6"] },
       { morning: ["Mat.3"], evening: ["Gen.7-9"] },
@@ -443,15 +601,7 @@
       { morning: ["Mar.5:1-20"], evening: ["Num.9-11"] },
       { morning: ["Mar.5:21-43"], evening: ["Num.12-14"] },
       { morning: ["Mar.6:1-29"], evening: ["Num.15-16"] },
-      // Feb 28 — same in both
-      { morning: ["Mar.6:30-56"], evening: ["Num.17-21"] }
-    ];
-
-    // Feb 29 (leap year only)
-    const FEB29 = { morning: ["Mar.7:1-13"], evening: ["Num.20-22"] };
-
-    // Mar 1 – Dec 31 for NON-LEAP year (306 days)
-    const NON_LEAP_END = [
+      { morning: ["Mar.6:30-56"], evening: ["Num.17-21"] },
       { morning: ["Mar.7"], evening: ["Num.22-25"] },
       { morning: ["Mar.8:1-21"], evening: ["Num.26-27"] },
       { morning: ["Mar.8:22-38"], evening: ["Num.28-30"] },
@@ -760,28 +910,6 @@
       { morning: ["Rev.22"], evening: ["Mal.1-4"] }
     ];
 
-    // Mar 1 – Dec 31 for LEAP year (306 days, but shifted because of Feb 29)
-    const LEAP_END = [
-      { morning: ["Mar.7:14-37"], evening: ["Num.23-25"] },
-      { morning: ["Mar.8:1-21"], evening: ["Num.26-27"] },
-      { morning: ["Mar.8:22-38"], evening: ["Num.28-30"] },
-      { morning: ["Mar.9:1-29"], evening: ["Num.31-33"] },
-      { morning: ["Mar.9:30-50"], evening: ["Num.34-36"] },
-      { morning: ["Mar.10:1-31"], evening: ["Deu.1-2"] },
-      // ... (rest is identical to NON_LEAP_END from Mar 2 onward)
-      // So we reuse NON_LEAP_END from index 1 onward
-    ];
-    // Complete LEAP_END by appending the rest
-    LEAP_END.push(...NON_LEAP_END.slice(1));
-
-    // === DYNAMIC PLAN SELECTION ===
-    const CURRENT_YEAR = new Date().getFullYear();
-    const IS_LEAP = isLeapYear(CURRENT_YEAR);
-    const READING_PLAN_EN = IS_LEAP
-      ? [...COMMON_START, FEB29, ...LEAP_END]
-      : [...COMMON_START, ...NON_LEAP_END];
-
-    // === Rest of your app (unchanged except for year logic) ===
     const TAMIL_MAP = {
       "Mat.": "மத்.",
       "Mar.": "மாற்.",
@@ -850,6 +978,7 @@
       "Zach.": "சகரி.",
       "Mal.": "மல்கி."
     };
+
     function convertToTamil(ref) {
       const books = Object.keys(TAMIL_MAP).sort((a, b) => b.length - a.length);
       for (const book of books) {
@@ -859,12 +988,13 @@
       }
       return ref;
     }
+
     const READING_PLAN_TA = READING_PLAN_EN.map(day => ({
       morning: day.morning.map(convertToTamil),
       evening: day.evening.map(convertToTamil)
     }));
 
-    // === Rest of your original code (mostly unchanged) ===
+    // === APP CORE ===
     let currentDayIndex = null;
     let currentView = 'today';
 
@@ -908,7 +1038,9 @@
     }
     function renderReadings(dayIndex) {
       if (dayIndex < 0 || dayIndex >= READING_PLAN_EN.length) return;
-      const targetDate = new Date(CURRENT_YEAR, 0, 1);
+      const now = new Date();
+      const year = now.getFullYear();
+      const targetDate = new Date(year, 0, 1);
       targetDate.setDate(targetDate.getDate() + dayIndex);
       document.getElementById('today-date').textContent = targetDate.toLocaleDateString('en-US', {
         weekday: 'short', month: 'short', day: 'numeric'
@@ -924,10 +1056,9 @@
       render('morning-list', en.morning, ta.morning);
       render('evening-list', en.evening, ta.evening);
       currentDayIndex = dayIndex;
-      const now = new Date();
-      const startOfYear = new Date(CURRENT_YEAR, 0, 1);
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
       const currentDayOfYear = Math.floor((now - startOfYear) / 86400000);
-      const isToday = (dayIndex === currentDayOfYear && now.getFullYear() === CURRENT_YEAR);
+      const isToday = (dayIndex === currentDayOfYear && now.getFullYear() === year);
       const todayBtn = document.getElementById('today-btn');
       if (isToday) {
         todayBtn.style.display = 'none';
@@ -936,8 +1067,8 @@
       }
     }
     function goToDay(offset) {
-      const startOfYear = new Date(CURRENT_YEAR, 0, 1);
       const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
       const dayOfYear = Math.floor((now - startOfYear) / 86400000);
       let target = offset === 0 ? dayOfYear : (currentDayIndex !== null ? currentDayIndex + offset : dayOfYear + offset);
       target = Math.max(0, Math.min(READING_PLAN_EN.length - 1, target));
@@ -945,8 +1076,8 @@
       if (currentView !== 'today') showTab('today');
     }
     function goToToday() {
-      const startOfYear = new Date(CURRENT_YEAR, 0, 1);
       const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
       const dayOfYear = Math.floor((now - startOfYear) / 86400000);
       renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
       if (currentView !== 'today') showTab('today');
@@ -990,7 +1121,7 @@
       container.innerHTML = '';
       const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
       const progress = loadProgress();
-      const year = CURRENT_YEAR;
+      const year = new Date().getFullYear();
       for (let month = 0; month < 12; month++) {
         const monthDiv = document.createElement('div');
         monthDiv.style.marginBottom = '16px';
@@ -1156,12 +1287,19 @@
         console.error('Share failed:', err);
       }
     }
+
+    // === INIT ===
     window.addEventListener('load', () => {
       applySavedTheme();
-      const startOfYear = new Date(CURRENT_YEAR, 0, 1);
       const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
       const dayOfYear = Math.floor((now - startOfYear) / 86400000);
       renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
+
+      const bibleLoaded = loadCachedBible();
+      if (!bibleLoaded) {
+        document.getElementById('verse-display').innerHTML = 'உங்கள் சாதனத்திலிருந்து ஒரு பைபிள் JSON கோப்பை ஏற்றவும்.';
+      }
     });
   </script>
 </body>
