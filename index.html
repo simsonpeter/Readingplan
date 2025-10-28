@@ -171,7 +171,6 @@
       flex: 1;
       overflow-y: auto;
       padding: 0 8px;
-      position: relative;
     }
     .selector-row {
       display: flex;
@@ -186,17 +185,6 @@
       background: var(--card);
       color: var(--text);
       font-size: 0.95rem;
-    }
-    #bible-search {
-      width: 100%;
-      padding: 8px;
-      margin: 8px 0;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--card);
-      color: var(--text);
-      font-size: 0.95rem;
-      display: block;
     }
     .verse-display {
       background: var(--card);
@@ -239,35 +227,10 @@
     }
     .bottom-bar .share-btn { background: var(--success); }
     .bottom-bar button i { font-size: 1.1rem; }
-
-    /* === FIXED NAV BUTTONS (CENTERED & FULLY VISIBLE) === */
-    #bible-nav-buttons {
-      display: none;
-      position: sticky;
-      bottom: 10px;
-      left: 0;
-      right: 0;
-      z-index: 5;
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-    }
-    #bible-nav-buttons button {
-      padding: 10px 20px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 24px;
-      font-weight: 600;
-      font-size: 0.95rem;
-      min-width: 80px;
-    }
-
-    /* Show only on touch devices */
-    @media (hover: none) and (pointer: coarse) {
-      #bible-nav-buttons {
-        display: flex !important;
-      }
+    .ref-en a {
+      color: var(--accent);
+      text-decoration: underline;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -312,13 +275,8 @@
         <select id="book-select" onchange="loadChapters()" disabled><option>புத்தகம் தேர்வு செய்யப்படவில்லை</option></select>
         <select id="chapter-select" onchange="loadVerses()" disabled><option>அதிகாரம் தேர்வு செய்யப்படவில்லை</option></select>
       </div>
-      <input type="text" id="bible-search" placeholder="Search entire Bible..." oninput="searchWholeBible(this.value)">
       <div class="verse-display" id="verse-display">
         உங்கள் சாதனத்திலிருந்து ஒரு பைபிள் JSON கோப்பை ஏற்றவும்.
-      </div>
-      <div id="bible-nav-buttons">
-        <button id="prev-chap-btn" onclick="navigateChapter(-1)">← Prev</button>
-        <button id="next-chap-btn" onclick="navigateChapter(1)">Next →</button>
       </div>
     </div>
   </div>
@@ -334,7 +292,7 @@
   <!-- Hidden file input -->
   <input type="file" id="bible-file-input" accept=".json" style="display:none" onchange="loadBibleFromFile(this.files[0])">
   <script>
-    // === BIBLE LOADER WITH CACHING ===
+    // === BIBLE DATA LOADER ===
     let TAMIL_BIBLE = null;
     const TAMIL_BOOK_NAMES = [
       "ஆதியாகமம்", "யாத்திராகமம்", "லேவியராகமம்", "எண்ணாகமம்", "உபாகமம்", "யோசுவா", "நியாயாதிபதிகள்", "ரூத்", "1 சாமுவேல்",
@@ -345,7 +303,6 @@
       "எபேசியர்", "பிலிப்பியர்", "கொலோசெயர்", "1 தெசலோனிக்கேயர்", "2 தெசலோனிக்கேயர்", "1 தீமோத்தேயு", "2 தீமோத்தேயு", "தீத்து",
       "பிலேமோன்", "எபிரெயர்", "யாக்கோபு", "1 பேதுரு", "2 பேதுரு", "1 யோவான்", "2 யோவான்", "3 யோவான்", "யூதா", "வெளி"
     ];
-
     function loadBibleFromFile(file) {
       if (!file) return;
       const reader = new FileReader();
@@ -362,12 +319,6 @@
                 return { name, chapters };
               })
             };
-            try {
-              localStorage.setItem('cachedBible', JSON.stringify(TAMIL_BIBLE));
-              localStorage.setItem('cachedBibleFilename', file.name);
-            } catch (err) {
-              console.warn('Bible too large for localStorage');
-            }
             document.getElementById('book-select').disabled = false;
             populateBooks();
             document.getElementById('verse-display').innerHTML = 'புத்தகத்தைத் தேர்ந்தெடுக்கவும்.';
@@ -382,7 +333,6 @@
       };
       reader.readAsText(file);
     }
-
     function resetBibleUI() {
       document.getElementById('book-select').disabled = true;
       document.getElementById('chapter-select').disabled = true;
@@ -390,7 +340,6 @@
       document.getElementById('chapter-select').innerHTML = '<option>அதிகாரம் தேர்வு செய்யப்படவில்லை</option>';
       document.getElementById('verse-display').innerHTML = 'உங்கள் சாதனத்திலிருந்து ஒரு பைபிள் JSON கோப்பை ஏற்றவும்.';
     }
-
     function populateBooks() {
       const select = document.getElementById('book-select');
       select.innerHTML = '';
@@ -402,7 +351,6 @@
       });
       loadChapters();
     }
-
     function loadChapters() {
       const bookIndex = document.getElementById('book-select').value;
       const chapterSelect = document.getElementById('chapter-select');
@@ -418,7 +366,6 @@
       chapterSelect.disabled = false;
       loadVerses();
     }
-
     function loadVerses() {
       const bookIndex = document.getElementById('book-select').value;
       const chapterIndex = document.getElementById('chapter-select').value;
@@ -435,113 +382,71 @@
       });
       display.innerHTML = html || 'வசனங்கள் கிடைக்கவில்லை.';
     }
-
-    // === WHOLE BIBLE SEARCH ===
-    function searchWholeBible(query) {
-      query = query.trim().toLowerCase();
-      const display = document.getElementById('verse-display');
-      if (!TAMIL_BIBLE || !query) {
-        if (document.getElementById('book-select').value !== '' && document.getElementById('chapter-select').value !== '') {
-          loadVerses();
-        } else {
-          display.innerHTML = 'பைபிளை ஏற்றவும் அல்லது அதிகாரத்தைத் தேர்ந்தெடுக்கவும்.';
+    // === BIBLE REFERENCE LINKING ===
+    function parseBibleRef(ref) {
+      // Match known book abbreviations from bookIndexMap
+      const bookIndexMap = {
+        "Gen.":0,"Exo.":1,"Lev.":2,"Num.":3,"Deu.":4,"Jos.":5,"Judg.":6,"Ruth.":7,
+        "1 Sam.":8,"2 Sam.":9,"1 King.":10,"2 King.":11,"1 Chro.":12,"2 Chro.":13,
+        "Ezra.":14,"Neh.":15,"Esth.":16,"Job.":17,"Psa.":18,"Pro.":19,"Ecc.":20,
+        "Song.":21,"Isa.":22,"Jer.":23,"Lam.":24,"Ezek.":25,"Dan.":26,"Hos.":27,
+        "Joel.":28,"Amos.":29,"Obad.":30,"Jonah.":31,"Mic.":32,"Nah.":33,"Hab.":34,
+        "Zep.":35,"Hag.":36,"Zach.":37,"Mal.":38,"Mat.":39,"Mar.":40,"Luk.":41,
+        "John.":42,"Act.":43,"Rom.":44,"1 Cor.":45,"2 Cor.":46,"Gal.":47,"Eph.":48,
+        "Phil.":49,"Col.":50,"1 Thes.":51,"2 Thes.":52,"1 Tim.":53,"2 Tim.":54,
+        "Tit.":55,"Phm.":56,"Heb.":57,"Jam.":58,"1 Pet.":59,"2 Pet.":60,"1 John.":61,
+        "2 John.":62,"3 John.":63,"Jude.":64,"Rev.":65
+      };
+      // Sort keys by length (longest first) to match "1 Cor." before "1"
+      const sortedBooks = Object.keys(bookIndexMap).sort((a, b) => b.length - a.length);
+      for (const bookAbbr of sortedBooks) {
+        if (ref.startsWith(bookAbbr)) {
+          const rest = ref.substring(bookAbbr.length).trim();
+          let startChapter = 1;
+          if (rest) {
+            const numMatch = rest.match(/^(\d+)/);
+            if (numMatch) {
+              startChapter = parseInt(numMatch[1], 10);
+            }
+          }
+          return { bookAbbr, startChapter };
         }
+      }
+      return null;
+    }
+    function openBibleByRef(ref) {
+      if (!TAMIL_BIBLE) {
+        alert('Please load a Bible first.');
         return;
       }
-
-      let results = [];
-      TAMIL_BIBLE.books.forEach((book, bookIndex) => {
-        book.chapters.forEach((chapter, chapIndex) => {
-          chapter.forEach((verseText, verseIndex) => {
-            if (verseText.toLowerCase().includes(query)) {
-              results.push({
-                book: book.name,
-                chapter: chapIndex + 1,
-                verseNum: verseIndex + 1,
-                text: verseText
-              });
-            }
-          });
-        });
-      });
-
-      if (results.length === 0) {
-        display.innerHTML = '<p style="text-align:center; color:var(--text-secondary);">தேடல் முடிவுகள் இல்லை.</p>';
-      } else {
-        let html = `<p style="margin-bottom:12px;"><strong>${results.length} முடிவுகள் கிடைத்தன:</strong></p>`;
-        results.forEach(r => {
-          html += `<p><strong>${r.book} ${r.chapter}:${r.verseNum}</strong><br><span class="verse-text">${r.text}</span></p>`;
-        });
-        display.innerHTML = html;
+      const parsed = parseBibleRef(ref);
+      if (!parsed) return;
+      const bookIndexMap = {
+        "Gen.":0,"Exo.":1,"Lev.":2,"Num.":3,"Deu.":4,"Jos.":5,"Judg.":6,"Ruth.":7,
+        "1 Sam.":8,"2 Sam.":9,"1 King.":10,"2 King.":11,"1 Chro.":12,"2 Chro.":13,
+        "Ezra.":14,"Neh.":15,"Esth.":16,"Job.":17,"Psa.":18,"Pro.":19,"Ecc.":20,
+        "Song.":21,"Isa.":22,"Jer.":23,"Lam.":24,"Ezek.":25,"Dan.":26,"Hos.":27,
+        "Joel.":28,"Amos.":29,"Obad.":30,"Jonah.":31,"Mic.":32,"Nah.":33,"Hab.":34,
+        "Zep.":35,"Hag.":36,"Zach.":37,"Mal.":38,"Mat.":39,"Mar.":40,"Luk.":41,
+        "John.":42,"Act.":43,"Rom.":44,"1 Cor.":45,"2 Cor.":46,"Gal.":47,"Eph.":48,
+        "Phil.":49,"Col.":50,"1 Thes.":51,"2 Thes.":52,"1 Tim.":53,"2 Tim.":54,
+        "Tit.":55,"Phm.":56,"Heb.":57,"Jam.":58,"1 Pet.":59,"2 Pet.":60,"1 John.":61,
+        "2 John.":62,"3 John.":63,"Jude.":64,"Rev.":65
+      };
+      const bookIndex = bookIndexMap[parsed.bookAbbr];
+      if (bookIndex === undefined || bookIndex >= TAMIL_BIBLE.books.length) {
+        console.warn('Book not found:', parsed.bookAbbr);
+        return;
       }
-    }
-
-    // === NAVIGATION LOGIC ===
-    let navTimeout = null;
-    function navigateChapter(direction) {
-      const bookSelect = document.getElementById('book-select');
-      const chapterSelect = document.getElementById('chapter-select');
-      const bookIndex = parseInt(bookSelect.value);
-      const chapterIndex = parseInt(chapterSelect.value);
-      if (isNaN(bookIndex) || isNaN(chapterIndex)) return;
-
-      const totalChapters = TAMIL_BIBLE.books[bookIndex].chapters.length;
-      let newChapterIndex = chapterIndex + direction;
-
-      if (newChapterIndex < 0) {
-        let newBookIndex = bookIndex - 1;
-        if (newBookIndex < 0) return;
-        bookSelect.value = newBookIndex;
-        loadChapters();
-        const newTotal = TAMIL_BIBLE.books[newBookIndex].chapters.length;
-        chapterSelect.value = newTotal - 1;
-      } else if (newChapterIndex >= totalChapters) {
-        let newBookIndex = bookIndex + 1;
-        if (newBookIndex >= TAMIL_BIBLE.books.length) return;
-        bookSelect.value = newBookIndex;
-        loadChapters();
-        chapterSelect.value = 0;
-      } else {
-        chapterSelect.value = newChapterIndex;
-      }
+      showTab('bible');
+      document.getElementById('book-select').value = bookIndex;
+      loadChapters();
+      const chapterIndex = Math.max(0, parsed.startChapter - 1);
+      document.getElementById('chapter-select').value = chapterIndex;
       loadVerses();
-      showNavButtons(); // Keep visible after tap
+      document.getElementById('bible-view').scrollTo({ top: 0, behavior: 'smooth' });
     }
-
-    function showNavButtons() {
-      if (!TAMIL_BIBLE) return;
-      const nav = document.getElementById('bible-nav-buttons');
-      nav.style.display = 'flex';
-      clearTimeout(navTimeout);
-      navTimeout = setTimeout(() => {
-        nav.style.display = 'none';
-      }, 3000);
-    }
-
-    document.getElementById('verse-display').addEventListener('touchstart', (e) => {
-      showNavButtons();
-    });
-
-    // === AUTO-LOAD CACHED BIBLE ===
-    function loadCachedBible() {
-      try {
-        const cached = localStorage.getItem('cachedBible');
-        if (cached) {
-          TAMIL_BIBLE = JSON.parse(cached);
-          document.getElementById('book-select').disabled = false;
-          populateBooks();
-          document.getElementById('verse-display').innerHTML = `Cached: ${localStorage.getItem('cachedBibleFilename') || 'Bible'}`;
-          return true;
-        }
-      } catch (err) {
-        console.error('Cached Bible load failed:', err);
-        localStorage.removeItem('cachedBible');
-        localStorage.removeItem('cachedBibleFilename');
-      }
-      return false;
-    }
-
-    // === READING PLAN (NON-LEAP YEAR) ===
+    // === READING PLAN ===
     const READING_PLAN_EN = [
       { morning: ["Mat.1"], evening: ["Gen.1-3"] },
       { morning: ["Mat.2"], evening: ["Gen.4-6"] },
@@ -601,8 +506,9 @@
       { morning: ["Mar.5:1-20"], evening: ["Num.9-11"] },
       { morning: ["Mar.5:21-43"], evening: ["Num.12-14"] },
       { morning: ["Mar.6:1-29"], evening: ["Num.15-16"] },
-      { morning: ["Mar.6:30-56"], evening: ["Num.17-21"] },
-      { morning: ["Mar.7"], evening: ["Num.22-25"] },
+      { morning: ["Mar.6:30-56"], evening: ["Num.17-19"] },
+      { morning: ["Mar.7:1-13"], evening: ["Num.20-22"] },
+      { morning: ["Mar.7:14-37"], evening: ["Num.23-25"] },
       { morning: ["Mar.8:1-21"], evening: ["Num.26-27"] },
       { morning: ["Mar.8:22-38"], evening: ["Num.28-30"] },
       { morning: ["Mar.9:1-29"], evening: ["Num.31-33"] },
@@ -909,7 +815,6 @@
       { morning: ["Rev.21"], evening: ["Zach.13-14"] },
       { morning: ["Rev.22"], evening: ["Mal.1-4"] }
     ];
-
     const TAMIL_MAP = {
       "Mat.": "மத்.",
       "Mar.": "மாற்.",
@@ -978,7 +883,6 @@
       "Zach.": "சகரி.",
       "Mal.": "மல்கி."
     };
-
     function convertToTamil(ref) {
       const books = Object.keys(TAMIL_MAP).sort((a, b) => b.length - a.length);
       for (const book of books) {
@@ -988,16 +892,13 @@
       }
       return ref;
     }
-
     const READING_PLAN_TA = READING_PLAN_EN.map(day => ({
       morning: day.morning.map(convertToTamil),
       evening: day.evening.map(convertToTamil)
     }));
-
     // === APP CORE ===
     let currentDayIndex = null;
     let currentView = 'today';
-
     function isDarkMode() {
       return document.body.classList.contains('dark-mode');
     }
@@ -1050,7 +951,10 @@
       const render = (id, enRefs, taRefs) => {
         document.getElementById(id).innerHTML = enRefs.map((enRef, i) => {
           const taRef = taRefs[i] || enRef;
-          return `<div class="verse-item"><div class="ref-en">${enRef}</div><div class="ref-ta">${taRef}</div></div>`;
+          return `<div class="verse-item">
+            <div class="ref-en"><a href="#" onclick="openBibleByRef('${enRef}'); return false;">${enRef}</a></div>
+            <div class="ref-ta">${taRef}</div>
+          </div>`;
         }).join('');
       };
       render('morning-list', en.morning, ta.morning);
@@ -1176,11 +1080,22 @@
               dayEl.style.color = 'white';
             }
             if (!isCompleted && !isToday) {
+              // Make calendar day clickable → opens reading
               dayEl.style.cursor = 'pointer';
               dayEl.onclick = () => {
                 renderReadings(dayOfYear);
                 showTab('today');
               };
+              // Also make the text contain clickable links
+              const en = READING_PLAN_EN[dayOfYear];
+              const readings = [...en.morning, ...en.evening];
+              let html = readings.map(ref => 
+                `<div class="ref-en" style="font-size:0.85rem;margin:2px 0;">
+                  <a href="#" onclick="openBibleByRef('${ref}'); return false;">${ref}</a>
+                </div>`
+              ).join('');
+              dayEl.title = readings.join(', ');
+              // Optional: show tooltip on hover (desktop)
             }
           }
           grid.appendChild(dayEl);
@@ -1287,19 +1202,12 @@
         console.error('Share failed:', err);
       }
     }
-
-    // === INIT ===
     window.addEventListener('load', () => {
       applySavedTheme();
       const now = new Date();
       const startOfYear = new Date(now.getFullYear(), 0, 1);
       const dayOfYear = Math.floor((now - startOfYear) / 86400000);
       renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
-
-      const bibleLoaded = loadCachedBible();
-      if (!bibleLoaded) {
-        document.getElementById('verse-display').innerHTML = 'உங்கள் சாதனத்திலிருந்து ஒரு பைபிள் JSON கோப்பை ஏற்றவும்.';
-      }
     });
   </script>
 </body>
