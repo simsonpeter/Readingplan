@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="description" content="One Year Bible — New Jerusalem Church">
+  <title>ஒரு வருட பைபிள் — NJC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --text: #212529;
+      --text-secondary: #495057;
+      --accent: #2c5a8c;
+      --card: #ffffff;
+      --border: #e0e0e0;
+      --success: #28a745;
+      --shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+    .dark-mode {
+      --bg: #121212;
+      --text: #e0e0e0;
+      --text-secondary: #b0b0b0;
+      --card: #1e1e1e;
+      --border: #333;
+      --accent: #4da6ff;
+      --success: #4caf50;
+      --shadow: 0 3px 12px rgba(0,0,0,0.25);
+    }
+    .dark-mode .ref-ta {
+      color: #d0d0d0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .watermark {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      opacity: 0.05;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--text);
+      pointer-events: none;
+      z-index: -1;
+      transform: rotate(-30deg);
+    }
+    .title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--card);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+    .title-bar h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-align: center;
+      flex: 1;
+      margin: 0 12px;
+    }
+    .nav-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 1.25rem;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    .tabs {
+      display: flex;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 0;
+      background: none;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #6c757d;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom: 2px solid var(--accent);
+    }
+    .dark-mode .tab-btn { color: #aaa; }
+    .dark-mode .tab-btn.active { color: var(--accent); }
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 16px;
+      overflow: hidden;
+    }
+    #today-view {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: 100%;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    #date-card {
+      padding: 16px;
+    }
+    #date-card .date-text {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .verse-item {
+      margin: 6px 0;
+    }
+    .ref-en {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+    .ref-ta {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      font-family: "Noto Sans Tamil", "Latha", sans-serif;
+      margin-top: 4px;
+    }
+    #calendar-view,
+    #bible-view {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 8px;
+    }
+    .selector-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .selector-row select {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+    .verse-display {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      font-family: "Noto Sans Tamil", "Latha", sans-serif;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      text-align: left;
+    }
+    .verse-display .verse-num {
+      color: var(--accent);
+      font-weight: bold;
+      margin-right: 6px;
+    }
+    .bottom-bar {
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+    }
+    .bottom-bar button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      width: 48%;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .bottom-bar .share-btn { background: var(--success); }
+    .bottom-bar button i { font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <div class="title-bar">
+    <button class="nav-btn" onclick="goToDay(-1)" aria-label="Previous">
+      <i class="fas fa-chevron-left"></i>
+    </button>
+    <h1>One Year Bible</h1>
+    <button class="nav-btn" id="today-btn" onclick="goToToday()" style="display:none;" aria-label="Go to today">
+      <i class="fas fa-home"></i>
+    </button>
+    <button class="nav-btn" onclick="toggleTheme()" aria-label="Toggle theme" id="theme-toggle">
+      <i class="fas fa-moon"></i>
+    </button>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('today')">Today</button>
+    <button class="tab-btn" onclick="showTab('calendar')">Calendar</button>
+    <button class="tab-btn" onclick="showTab('bible')">Bible</button>
+  </div>
+  <div class="content">
+    <div id="today-view">
+      <div class="card" id="date-card">
+        <div class="date-text" id="today-date"></div>
+      </div>
+      <div class="card">
+        <div class="section-title"><i class="fas fa-sun"></i> Morning</div>
+        <div id="morning-list"></div>
+      </div>
+      <div class="card">
+        <div class="section-title"><i class="fas fa-moon"></i> Evening</div>
+        <div id="evening-list"></div>
+      </div>
+    </div>
+    <div id="calendar-view"></div>
+    <div id="bible-view">
+      <button onclick="document.getElementById('bible-file-input').click()" style="margin-bottom:12px; padding:8px; background:var(--accent); color:white; border:none; border-radius:6px; width:100%;">
+        📖 Load Bible from Device
+      </button>
+      <div class="selector-row">
+        <select id="book-select" onchange="loadChapters()" disabled><option>புத்தகம் தேர்வு செய்யப்படவில்லை</option></select>
+        <select id="chapter-select" onchange="loadVerses()" disabled><option>அதிகாரம் தேர்வு செய்யப்படவில்லை</option></select>
+      </div>
+      <div class="verse-display" id="verse-display">
+        உங்கள் சாதனத்திலிருந்து ஒரு பைபிள் JSON கோப்பை ஏற்றவும்.
+      </div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <button class="progress-btn" onclick="markAsRead()">
+      <i class="fas fa-check-circle"></i> Mark Read
+    </button>
+    <button class="share-btn" onclick="shareReadings()">
+      <i class="fas fa-share-alt"></i> Share
+    </button>
+  </div>
+  <div class="watermark">JayathaSoft</div>
+  <!-- Hidden file input -->
+  <input type="file" id="bible-file-input" accept=".json" style="display:none" onchange="loadBibleFromFile(this.files[0])">
+  <script>
+    // === BIBLE DATA LOADER (unchanged) ===
+    let TAMIL_BIBLE = null;
+    const TAMIL_BOOK_NAMES = [
+      "ஆதியாகமம்", "யாத்திராகமம்", "லேவியராகமம்", "எண்ணாகமம்", "உபாகமம்", "யோசுவா", "நியாயாதிபதிகள்", "ரூத்", "1 சாமுவேல்",
+      "2 சாமுவேல்", "1 இராஜாக்கள்", "2 இராஜாக்கள்", "1 நாளாகமம்", "2 நாளாகமம்", "எஸ்றா", "நெகேமியா", "எஸ்தர்", "யோபு",
+      "சங்கீதம்", "நீதிமொழிகள்", "பிரசங்கி", "உன்னதப்பாட்டு", "ஏசாயா", "எரேமியா", "புலம்பல்", "எசேக்கியேல்", "தானியேல்", "ஓசியா",
+      "யோவேல்", "ஆமோஸ்", "ஒபதியா", "யோனா", "மீகா", "நாகூம்", "ஆபகூக்", "செப்பனியா", "ஆகாய்", "சகரியா", "மல்கியா",
+      "மத்தேயு", "மாற்கு", "லுூக்கா", "யோவான்", "அப்போஸ்தலர்", "ரோமர்", "1 கொரிந்தியர்", "2 கொரிந்தியர்", "கலாத்தியர்",
+      "எபேசியர்", "பிலிப்பியர்", "கொலோசெயர்", "1 தெசலோனிக்கேயர்", "2 தெசலோனிக்கேயர்", "1 தீமோத்தேயு", "2 தீமோத்தேயு", "தீத்து",
+      "பிலேமோன்", "எபிரெயர்", "யாக்கோபு", "1 பேதுரு", "2 பேதுரு", "1 யோவான்", "2 யோவான்", "3 யோவான்", "யூதா", "வெளி"
+    ];
+    function loadBibleFromFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.Book && Array.isArray(data.Book)) {
+            TAMIL_BIBLE = {
+              books: data.Book.map((bookObj, index) => {
+                const name = TAMIL_BOOK_NAMES[index] || `புத்தகம் ${index + 1}`;
+                const chapters = bookObj.Chapter ? bookObj.Chapter.map(ch =>
+                  ch.Verse ? ch.Verse.map(v => v.Verse || '') : []
+                ) : [];
+                return { name, chapters };
+              })
+            };
+            document.getElementById('book-select').disabled = false;
+            populateBooks();
+            document.getElementById('verse-display').innerHTML = 'புத்தகத்தைத் தேர்ந்தெடுக்கவும்.';
+          } else {
+            throw new Error('Invalid format');
+          }
+        } catch (err) {
+          console.error('Bible load error:', err);
+          alert('தவறான பைபிள் கோப்பு. சரியான JSON வடிவம் இல்லை.');
+          resetBibleUI();
+        }
+      };
+      reader.readAsText(file);
+    }
+    function resetBibleUI() {
+      document.getElementById('book-select').disabled = true;
+      document.getElementById('chapter-select').disabled = true;
+      document.getElementById('book-select').innerHTML = '<option>புத்தகம் தேர்வு செய்யப்படவில்லை</option>';
+      document.getElementById('chapter-select').innerHTML = '<option>அதிகாரம் தேர்வு செய்யப்படவில்லை</option>';
+      document.getElementById('verse-display').innerHTML = 'உங்கள் சாதனத்திலிருந்து ஒரு பைபிள் JSON கோப்பை ஏற்றவும்.';
+    }
+    function populateBooks() {
+      const select = document.getElementById('book-select');
+      select.innerHTML = '';
+      TAMIL_BIBLE.books.forEach((book, index) => {
+        const opt = document.createElement('option');
+        opt.value = index;
+        opt.textContent = book.name;
+        select.appendChild(opt);
+      });
+      loadChapters();
+    }
+    function loadChapters() {
+      const bookIndex = document.getElementById('book-select').value;
+      const chapterSelect = document.getElementById('chapter-select');
+      chapterSelect.innerHTML = '';
+      if (bookIndex === '') return;
+      const book = TAMIL_BIBLE.books[bookIndex];
+      for (let i = 1; i <= book.chapters.length; i++) {
+        const opt = document.createElement('option');
+        opt.value = i - 1;
+        opt.textContent = i;
+        chapterSelect.appendChild(opt);
+      }
+      chapterSelect.disabled = false;
+      loadVerses();
+    }
+    function loadVerses() {
+      const bookIndex = document.getElementById('book-select').value;
+      const chapterIndex = document.getElementById('chapter-select').value;
+      const display = document.getElementById('verse-display');
+      if (bookIndex === '' || chapterIndex === '') {
+        display.innerHTML = 'அதிகாரத்தைத் தேர்ந்தெடுக்கவும்.';
+        return;
+      }
+      const chapter = TAMIL_BIBLE.books[bookIndex].chapters[chapterIndex];
+      let html = '';
+      chapter.forEach((verseText, verseIndex) => {
+        const verseNum = verseIndex + 1;
+        html += `<p><span class="verse-num">${verseNum}</span>${verseText}</p>`;
+      });
+      display.innerHTML = html || 'வசனங்கள் கிடைக்கவில்லை.';
+    }
+
+    // === LEAP-YEAR AWARE READING PLAN ===
+    function isLeapYear(year) {
+      return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    }
+
+    // Jan 1 – Feb 28 (59 days)
+    const COMMON_START = [
+      { morning: ["Mat.1"], evening: ["Gen.1-3"] },
+      { morning: ["Mat.2"], evening: ["Gen.4-6"] },
+      { morning: ["Mat.3"], evening: ["Gen.7-9"] },
+      { morning: ["Mat.4"], evening: ["Gen.10-12"] },
+      { morning: ["Mat.5:1-26"], evening: ["Gen.13-15"] },
+      { morning: ["Mat.5:27-48"], evening: ["Gen.16-17"] },
+      { morning: ["Mat.6:1-18"], evening: ["Gen.18-19"] },
+      { morning: ["Mat.6:19-34"], evening: ["Gen.20-22"] },
+      { morning: ["Mat.7"], evening: ["Gen.23-24"] },
+      { morning: ["Mat.8:1-17"], evening: ["Gen.25-26"] },
+      { morning: ["Mat.8:18-34"], evening: ["Gen.27-28"] },
+      { morning: ["Mat.9:1-17"], evening: ["Gen.29-30"] },
+      { morning: ["Mat.9:18-38"], evening: ["Gen.31-32"] },
+      { morning: ["Mat.10:1-20"], evening: ["Gen.33-35"] },
+      { morning: ["Mat.10:21-42"], evening: ["Gen.36-38"] },
+      { morning: ["Mat.11"], evening: ["Gen.39-40"] },
+      { morning: ["Mat.12:1-23"], evening: ["Gen.41-42"] },
+      { morning: ["Mat.12:24-50"], evening: ["Gen.43-45"] },
+      { morning: ["Mat.13:1-30"], evening: ["Gen.46-48"] },
+      { morning: ["Mat.13:31-58"], evening: ["Gen.49-50"] },
+      { morning: ["Mat.14:1-21"], evening: ["Exo.1-3"] },
+      { morning: ["Mat.14:22-36"], evening: ["Exo.4-6"] },
+      { morning: ["Mat.15:1-21"], evening: ["Exo.7-8"] },
+      { morning: ["Mat.15:22-39"], evening: ["Exo.9-11"] },
+      { morning: ["Mat.16"], evening: ["Exo.12-13"] },
+      { morning: ["Mat.17"], evening: ["Exo.14-15"] },
+      { morning: ["Mat.18:1-20"], evening: ["Exo.16-18"] },
+      { morning: ["Mat.18:21-35"], evening: ["Exo.19-20"] },
+      { morning: ["Mat.19"], evening: ["Exo.21-22"] },
+      { morning: ["Mat.20:1-16"], evening: ["Exo.23-24"] },
+      { morning: ["Mat.20:17-34"], evening: ["Exo.25-26"] },
+      { morning: ["Mat.21:1-22"], evening: ["Exo.27-28"] },
+      { morning: ["Mat.21:23-46"], evening: ["Exo.29-30"] },
+      { morning: ["Mat.22:1-22"], evening: ["Exo.31-33"] },
+      { morning: ["Mat.22:23-46"], evening: ["Exo.34-35"] },
+      { morning: ["Mat.23:1-22"], evening: ["Exo.36-38"] },
+      { morning: ["Mat.23:23-39"], evening: ["Exo.39-40"] },
+      { morning: ["Mat.24:1-28"], evening: ["Lev.1-3"] },
+      { morning: ["Mat.24:29-51"], evening: ["Lev.4-5"] },
+      { morning: ["Mat.25:1-30"], evening: ["Lev.6-7"] },
+      { morning: ["Mat.25:31-46"], evening: ["Lev.8-10"] },
+      { morning: ["Mat.26:1-25"], evening: ["Lev.11-12"] },
+      { morning: ["Mat.26:26-50"], evening: ["Lev.13"] },
+      { morning: ["Mat.26:51-66"], evening: ["Lev.14"] },
+      { morning: ["Mat.27:1-26"], evening: ["Lev.15-16"] },
+      { morning: ["Mat.27:27-50"], evening: ["Lev.17-18"] },
+      { morning: ["Mat.27:51-66"], evening: ["Lev.19-20"] },
+      { morning: ["Mat.28"], evening: ["Lev.21-22"] },
+      { morning: ["Mar.1:1-22"], evening: ["Lev.23-24"] },
+      { morning: ["Mar.1:23-45"], evening: ["Lev.25"] },
+      { morning: ["Mar.2"], evening: ["Lev.26-27"] },
+      { morning: ["Mar.3:1-19"], evening: ["Num.1-2"] },
+      { morning: ["Mar.3:20-35"], evening: ["Num.3-4"] },
+      { morning: ["Mar.4:1-20"], evening: ["Num.5-6"] },
+      { morning: ["Mar.4:21-41"], evening: ["Num.7-8"] },
+      { morning: ["Mar.5:1-20"], evening: ["Num.9-11"] },
+      { morning: ["Mar.5:21-43"], evening: ["Num.12-14"] },
+      { morning: ["Mar.6:1-29"], evening: ["Num.15-16"] },
+      // Feb 28 — same in both
+      { morning: ["Mar.6:30-56"], evening: ["Num.17-21"] }
+    ];
+
+    // Feb 29 (leap year only)
+    const FEB29 = { morning: ["Mar.7:1-13"], evening: ["Num.20-22"] };
+
+    // Mar 1 – Dec 31 for NON-LEAP year (306 days)
+    const NON_LEAP_END = [
+      { morning: ["Mar.7"], evening: ["Num.22-25"] },
+      { morning: ["Mar.8:1-21"], evening: ["Num.26-27"] },
+      { morning: ["Mar.8:22-38"], evening: ["Num.28-30"] },
+      { morning: ["Mar.9:1-29"], evening: ["Num.31-33"] },
+      { morning: ["Mar.9:30-50"], evening: ["Num.34-36"] },
+      { morning: ["Mar.10:1-31"], evening: ["Deu.1-2"] },
+      { morning: ["Mar.10:32-52"], evening: ["Deu.3-4"] },
+      { morning: ["Mar.11:1-18"], evening: ["Deu.5-7"] },
+      { morning: ["Mar.11:19-33"], evening: ["Deu.8-10"] },
+      { morning: ["Mar.12:1-27"], evening: ["Deu.11-13"] },
+      { morning: ["Mar.12:28-44"], evening: ["Deu.14-16"] },
+      { morning: ["Mar.13:1-20"], evening: ["Deu.17-19"] },
+      { morning: ["Mar.13:21-37"], evening: ["Deu.20-22"] },
+      { morning: ["Mar.14:1-26"], evening: ["Deu.23-25"] },
+      { morning: ["Mar.14:27-53"], evening: ["Deu.26-27"] },
+      { morning: ["Mar.14:54-72"], evening: ["Deu.28-29"] },
+      { morning: ["Mar.15:1-25"], evening: ["Deu.30-31"] },
+      { morning: ["Mar.15:26-47"], evening: ["Deu.32-34"] },
+      { morning: ["Mar.16"], evening: ["Jos.1-3"] },
+      { morning: ["Luk.1:1-20"], evening: ["Jos.4-6"] },
+      { morning: ["Luk.1:21-38"], evening: ["Jos.7-9"] },
+      { morning: ["Luk.1:39-56"], evening: ["Jos.10-12"] },
+      { morning: ["Luk.1:57-80"], evening: ["Jos.13-15"] },
+      { morning: ["Luk.2:1-24"], evening: ["Jos.16-18"] },
+      { morning: ["Luk.2:25-52"], evening: ["Jos.19-21"] },
+      { morning: ["Luk.3"], evening: ["Jos.22-24"] },
+      { morning: ["Luk.4:1-30"], evening: ["Judg.1-3"] },
+      { morning: ["Luk.4:31-44"], evening: ["Judg.4-6"] },
+      { morning: ["Luk.5:1-16"], evening: ["Judg.7-8"] },
+      { morning: ["Luk.5:17-39"], evening: ["Judg.9-10"] },
+      { morning: ["Luk.6:1-26"], evening: ["Judg.11-12"] },
+      { morning: ["Luk.6:27-49"], evening: ["Judg.13-15"] },
+      { morning: ["Luk.7:1-30"], evening: ["Judg.16-18"] },
+      { morning: ["Luk.7:31-50"], evening: ["Judg.19-21"] },
+      { morning: ["Luk.8:1-25"], evening: ["Ruth.1-4"] },
+      { morning: ["Luk.8:26-56"], evening: ["1 Sam.1-3"] },
+      { morning: ["Luk.9:1-17"], evening: ["1 Sam.4-6"] },
+      { morning: ["Luk.9:18-36"], evening: ["1 Sam.7-9"] },
+      { morning: ["Luk.9:37-62"], evening: ["1 Sam.10-12"] },
+      { morning: ["Luk.10:1-24"], evening: ["1 Sam.13-14"] },
+      { morning: ["Luk.10:25-42"], evening: ["1 Sam.15-16"] },
+      { morning: ["Luk.11:1-28"], evening: ["1 Sam.17-18"] },
+      { morning: ["Luk.11:29-54"], evening: ["1 Sam.19-21"] },
+      { morning: ["Luk.12:1-31"], evening: ["1 Sam.22-24"] },
+      { morning: ["Luk.12:32-59"], evening: ["1 Sam.25-26"] },
+      { morning: ["Luk.13:1-22"], evening: ["1 Sam.27-29"] },
+      { morning: ["Luk.13:23-35"], evening: ["1 Sam.30-31"] },
+      { morning: ["Luk.14:1-24"], evening: ["2 Sam.1-2"] },
+      { morning: ["Luk.14:25-35"], evening: ["2 Sam.3-5"] },
+      { morning: ["Luk.15:1-10"], evening: ["2 Sam.6-8"] },
+      { morning: ["Luk.15:11-32"], evening: ["2 Sam.9-11"] },
+      { morning: ["Luk.16"], evening: ["2 Sam.12-13"] },
+      { morning: ["Luk.17:1-19"], evening: ["2 Sam.14-15"] },
+      { morning: ["Luk.17:20-37"], evening: ["2 Sam.16-18"] },
+      { morning: ["Luk.18:1-23"], evening: ["2 Sam.19-20"] },
+      { morning: ["Luk.18:24-43"], evening: ["2 Sam.21-22"] },
+      { morning: ["Luk.19:1-27"], evening: ["2 Sam.23-24"] },
+      { morning: ["Luk.19:28-48"], evening: ["1 King.1-2"] },
+      { morning: ["Luk.20:1-26"], evening: ["1 King.3-5"] },
+      { morning: ["Luk.20:27-47"], evening: ["1 King.6-7"] },
+      { morning: ["Luk.21:1-19"], evening: ["1 King.8-9"] },
+      { morning: ["Luk.21:20-38"], evening: ["1 King.10-11"] },
+      { morning: ["Luk.22:1-20"], evening: ["1 King.12-13"] },
+      { morning: ["Luk.22:21-46"], evening: ["1 King.14-15"] },
+      { morning: ["Luk.22:47-71"], evening: ["1 King.16-18"] },
+      { morning: ["Luk.23:1-25"], evening: ["1 King.19-20"] },
+      { morning: ["Luk.23:26-56"], evening: ["1 King.21-22"] },
+      { morning: ["Luk.24:1-35"], evening: ["2 King.1-3"] },
+      { morning: ["Luk.24:36-53"], evening: ["2 King.4-6"] },
+      { morning: ["John.1:1-28"], evening: ["2 King.7-9"] },
+      { morning: ["John.1:29-51"], evening: ["2 King.10-12"] },
+      { morning: ["John.2"], evening: ["2 King.13-14"] },
+      { morning: ["John.3:1-18"], evening: ["2 King.15-16"] },
+      { morning: ["John.3:19-36"], evening: ["2 King.17-18"] },
+      { morning: ["John.4:1-30"], evening: ["2 King.19-21"] },
+      { morning: ["John.4:31-54"], evening: ["2 King.22-23"] },
+      { morning: ["John.5:1-24"], evening: ["2 King.24-25"] },
+      { morning: ["John.5:25-47"], evening: ["1 Chro.1-3"] },
+      { morning: ["John.6:1-21"], evening: ["1 Chro.4-6"] },
+      { morning: ["John.6:22-44"], evening: ["1 Chro.7-9"] },
+      { morning: ["John.6:45-71"], evening: ["1 Chro.10-12"] },
+      { morning: ["John.7:1-27"], evening: ["1 Chro.13-15"] },
+      { morning: ["John.7:28-53"], evening: ["1 Chro.16-18"] },
+      { morning: ["John.8:1-27"], evening: ["1 Chro.19-21"] },
+      { morning: ["John.8:28-59"], evening: ["1 Chro.22-24"] },
+      { morning: ["John.9:1-23"], evening: ["1 Chro.25-27"] },
+      { morning: ["John.9:24-41"], evening: ["1 Chro.28-29"] },
+      { morning: ["John.10:1-23"], evening: ["2 Chro.1-3"] },
+      { morning: ["John.10:24-42"], evening: ["2 Chro.4-6"] },
+      { morning: ["John.11:1-29"], evening: ["2 Chro.7-9"] },
+      { morning: ["John.11:30-57"], evening: ["2 Chro.10-12"] },
+      { morning: ["John.12:1-26"], evening: ["2 Chro.13-14"] },
+      { morning: ["John.12:27-50"], evening: ["2 Chro.15-16"] },
+      { morning: ["John.13:1-20"], evening: ["2 Chro.17-18"] },
+      { morning: ["John.13:21-38"], evening: ["2 Chro.19-20"] },
+      { morning: ["John.14"], evening: ["2 Chro.21-22"] },
+      { morning: ["John.15"], evening: ["2 Chro.23-24"] },
+      { morning: ["John.16"], evening: ["2 Chro.25-27"] },
+      { morning: ["John.17"], evening: ["2 Chro.28-29"] },
+      { morning: ["John.18:1-18"], evening: ["2 Chro.30-31"] },
+      { morning: ["John.18:19-40"], evening: ["2 Chro.32-33"] },
+      { morning: ["John.19:1-22"], evening: ["2 Chro.34-36"] },
+      { morning: ["John.19:23-42"], evening: ["Ezra.1-2"] },
+      { morning: ["John.20"], evening: ["Ezra.3-5"] },
+      { morning: ["John.21"], evening: ["Ezra.6-8"] },
+      { morning: ["Act.1"], evening: ["Ezra.9-10"] },
+      { morning: ["Act.2:1-21"], evening: ["Neh.1-3"] },
+      { morning: ["Act.2:22-47"], evening: ["Neh.4-6"] },
+      { morning: ["Act.3"], evening: ["Neh.7-9"] },
+      { morning: ["Act.4:1-22"], evening: ["Neh.10-11"] },
+      { morning: ["Act.4:23-37"], evening: ["Neh.12-13"] },
+      { morning: ["Act.5:1-21"], evening: ["Esth.1-2"] },
+      { morning: ["Act.5:22-42"], evening: ["Esth.3-5"] },
+      { morning: ["Act.6"], evening: ["Esth.6-8"] },
+      { morning: ["Act.7:1-21"], evening: ["Esth.9-10"] },
+      { morning: ["Act.7:22-43"], evening: ["Job.1-2"] },
+      { morning: ["Act.7:44-60"], evening: ["Job.3-5"] },
+      { morning: ["Act.8:1-25"], evening: ["Job.6-7"] },
+      { morning: ["Act.8:26-40"], evening: ["Job.8-10"] },
+      { morning: ["Act.9:1-21"], evening: ["Job.11-13"] },
+      { morning: ["Act.9:22-43"], evening: ["Job.14-16"] },
+      { morning: ["Act.10:1-23"], evening: ["Job.17-19"] },
+      { morning: ["Act.10:24-48"], evening: ["Job.20-21"] },
+      { morning: ["Act.11"], evening: ["Job.22-24"] },
+      { morning: ["Act.12"], evening: ["Job.25-27"] },
+      { morning: ["Act.13:1-25"], evening: ["Job.28-29"] },
+      { morning: ["Act.13:26-52"], evening: ["Job.30-31"] },
+      { morning: ["Act.14"], evening: ["Job.32-33"] },
+      { morning: ["Act.15:1-21"], evening: ["Job.34-35"] },
+      { morning: ["Act.15:22-41"], evening: ["Job.36-37"] },
+      { morning: ["Act.16:1-21"], evening: ["Job.38-40"] },
+      { morning: ["Act.16:22-40"], evening: ["Job.41-42"] },
+      { morning: ["Act.17:1-15"], evening: ["Psa.1-3"] },
+      { morning: ["Act.17:16-34"], evening: ["Psa.4-6"] },
+      { morning: ["Act.18"], evening: ["Psa.7-9"] },
+      { morning: ["Act.19:1-20"], evening: ["Psa.10-12"] },
+      { morning: ["Act.19:21-41"], evening: ["Psa.13-15"] },
+      { morning: ["Act.20:1-16"], evening: ["Psa.16-17"] },
+      { morning: ["Act.20:17-38"], evening: ["Psa.18-19"] },
+      { morning: ["Act.21:1-17"], evening: ["Psa.20-22"] },
+      { morning: ["Act.21:18-40"], evening: ["Psa.23-25"] },
+      { morning: ["Act.22"], evening: ["Psa.26-28"] },
+      { morning: ["Act.23:1-15"], evening: ["Psa.29-30"] },
+      { morning: ["Act.23:16-35"], evening: ["Psa.31-32"] },
+      { morning: ["Act.24"], evening: ["Psa.33-34"] },
+      { morning: ["Act.25"], evening: ["Psa.35-36"] },
+      { morning: ["Act.26"], evening: ["Psa.37-39"] },
+      { morning: ["Act.27:1-26"], evening: ["Psa.40-42"] },
+      { morning: ["Act.27:27-44"], evening: ["Psa.43-45"] },
+      { morning: ["Act.28"], evening: ["Psa.46-48"] },
+      { morning: ["Rom.1"], evening: ["Psa.49-50"] },
+      { morning: ["Rom.2"], evening: ["Psa.51-53"] },
+      { morning: ["Rom.3"], evening: ["Psa.54-56"] },
+      { morning: ["Rom.4"], evening: ["Psa.57-59"] },
+      { morning: ["Rom.5"], evening: ["Psa.60-62"] },
+      { morning: ["Rom.6"], evening: ["Psa.63-65"] },
+      { morning: ["Rom.7"], evening: ["Psa.66-67"] },
+      { morning: ["Rom.8:1-21"], evening: ["Psa.68-69"] },
+      { morning: ["Rom.8:22-39"], evening: ["Psa.70-71"] },
+      { morning: ["Rom.9:1-15"], evening: ["Psa.72-73"] },
+      { morning: ["Rom.9:16-33"], evening: ["Psa.74-76"] },
+      { morning: ["Rom.10"], evening: ["Psa.77-78"] },
+      { morning: ["Rom.11:1-18"], evening: ["Psa.79-80"] },
+      { morning: ["Rom.11:19-36"], evening: ["Psa.81-83"] },
+      { morning: ["Rom.12"], evening: ["Psa.84-86"] },
+      { morning: ["Rom.13"], evening: ["Psa.87-88"] },
+      { morning: ["Rom.14"], evening: ["Psa.89-90"] },
+      { morning: ["Rom.15:1-13"], evening: ["Psa.91-93"] },
+      { morning: ["Rom.15:14-33"], evening: ["Psa.94-96"] },
+      { morning: ["Rom.16"], evening: ["Psa.97-99"] },
+      { morning: ["1 Cor.1"], evening: ["Psa.100-102"] },
+      { morning: ["1 Cor.2"], evening: ["Psa.103-104"] },
+      { morning: ["1 Cor.3"], evening: ["Psa.105-106"] },
+      { morning: ["1 Cor.4"], evening: ["Psa.107-109"] },
+      { morning: ["1 Cor.5"], evening: ["Psa.110-112"] },
+      { morning: ["1 Cor.6"], evening: ["Psa.113-115"] },
+      { morning: ["1 Cor.7:1-19"], evening: ["Psa.116-118"] },
+      { morning: ["1 Cor.7:20-40"], evening: ["Psa.119:1-88"] },
+      { morning: ["1 Cor.8"], evening: ["Psa.119:89-176"] },
+      { morning: ["1 Cor.9"], evening: ["Psa.120-122"] },
+      { morning: ["1 Cor.10:1-18"], evening: ["Psa.123-125"] },
+      { morning: ["1 Cor.10:19-33"], evening: ["Psa.126-128"] },
+      { morning: ["1 Cor.11:1-16"], evening: ["Psa.129-131"] },
+      { morning: ["1 Cor.11:17-34"], evening: ["Psa.132-134"] },
+      { morning: ["1 Cor.12"], evening: ["Psa.135-136"] },
+      { morning: ["1 Cor.13"], evening: ["Psa.137-139"] },
+      { morning: ["1 Cor.14:1-20"], evening: ["Psa.140-142"] },
+      { morning: ["1 Cor.14:21-40"], evening: ["Psa.143-145"] },
+      { morning: ["1 Cor.15:1-28"], evening: ["Psa.146-147"] },
+      { morning: ["1 Cor.15:29-58"], evening: ["Psa.148-150"] },
+      { morning: ["1 Cor.16"], evening: ["Pro.1-2"] },
+      { morning: ["2 Cor.1"], evening: ["Pro.3-5"] },
+      { morning: ["2 Cor.2"], evening: ["Pro.6-7"] },
+      { morning: ["2 Cor.3"], evening: ["Pro.8-9"] },
+      { morning: ["2 Cor.4"], evening: ["Pro.10-12"] },
+      { morning: ["2 Cor.5"], evening: ["Pro.13-15"] },
+      { morning: ["2 Cor.6"], evening: ["Pro.16-18"] },
+      { morning: ["2 Cor.7"], evening: ["Pro.19-21"] },
+      { morning: ["2 Cor.8"], evening: ["Pro.22-24"] },
+      { morning: ["2 Cor.9"], evening: ["Pro.25-26"] },
+      { morning: ["2 Cor.10"], evening: ["Pro.27-29"] },
+      { morning: ["2 Cor.11:1-15"], evening: ["Pro.30-31"] },
+      { morning: ["2 Cor.11:16-33"], evening: ["Ecc.1-3"] },
+      { morning: ["2 Cor.12"], evening: ["Ecc.4-6"] },
+      { morning: ["2 Cor.13"], evening: ["Ecc.7-9"] },
+      { morning: ["Gal.1"], evening: ["Ecc.10-12"] },
+      { morning: ["Gal.2"], evening: ["Song.1-3"] },
+      { morning: ["Gal.3"], evening: ["Song.4-5"] },
+      { morning: ["Gal.4"], evening: ["Song.6-8"] },
+      { morning: ["Gal.5"], evening: ["Isa.1-2"] },
+      { morning: ["Gal.6"], evening: ["Isa.3-4"] },
+      { morning: ["Eph.1"], evening: ["Isa.5-6"] },
+      { morning: ["Eph.2"], evening: ["Isa.7-8"] },
+      { morning: ["Eph.3"], evening: ["Isa.9-10"] },
+      { morning: ["Eph.4"], evening: ["Isa.11-13"] },
+      { morning: ["Eph.5:1-16"], evening: ["Isa.14-16"] },
+      { morning: ["Eph.5:17-33"], evening: ["Isa.17-19"] },
+      { morning: ["Eph.6"], evening: ["Isa.20-22"] },
+      { morning: ["Phil.1"], evening: ["Isa.23-25"] },
+      { morning: ["Phil.2"], evening: ["Isa.26-27"] },
+      { morning: ["Phil.3"], evening: ["Isa.28-29"] },
+      { morning: ["Phil.4"], evening: ["Isa.30-31"] },
+      { morning: ["Col.1"], evening: ["Isa.32-33"] },
+      { morning: ["Col.2"], evening: ["Isa.34-36"] },
+      { morning: ["Col.3"], evening: ["Isa.37-38"] },
+      { morning: ["Col.4"], evening: ["Isa.39-40"] },
+      { morning: ["1 Thes.1"], evening: ["Isa.41-42"] },
+      { morning: ["1 Thes.2"], evening: ["Isa.43-44"] },
+      { morning: ["1 Thes.3"], evening: ["Isa.45-46"] },
+      { morning: ["1 Thes.4"], evening: ["Isa.47-49"] },
+      { morning: ["1 Thes.5"], evening: ["Isa.50-52"] },
+      { morning: ["2 Thes.1"], evening: ["Isa.53-55"] },
+      { morning: ["2 Thes.2"], evening: ["Isa.56-58"] },
+      { morning: ["2 Thes.3"], evening: ["Isa.59-61"] },
+      { morning: ["1 Tim.1"], evening: ["Isa.62-64"] },
+      { morning: ["1 Tim.2"], evening: ["Isa.65-66"] },
+      { morning: ["1 Tim.3"], evening: ["Jer.1-2"] },
+      { morning: ["1 Tim.4"], evening: ["Jer.3-5"] },
+      { morning: ["1 Tim.5"], evening: ["Jer.6-8"] },
+      { morning: ["1 Tim.6"], evening: ["Jer.9-11"] },
+      { morning: ["2 Tim.1"], evening: ["Jer.12-14"] },
+      { morning: ["2 Tim.2"], evening: ["Jer.15-17"] },
+      { morning: ["2 Tim.3"], evening: ["Jer.18-19"] },
+      { morning: ["2 Tim.4"], evening: ["Jer.20-21"] },
+      { morning: ["Tit.1"], evening: ["Jer.22-23"] },
+      { morning: ["Tit.2"], evening: ["Jer.24-26"] },
+      { morning: ["Tit.3"], evening: ["Jer.27-29"] },
+      { morning: ["Phm.1"], evening: ["Jer.30-31"] },
+      { morning: ["Heb.1"], evening: ["Jer.32-33"] },
+      { morning: ["Heb.2"], evening: ["Jer.34-36"] },
+      { morning: ["Heb.3"], evening: ["Jer.37-39"] },
+      { morning: ["Heb.4"], evening: ["Jer.40-42"] },
+      { morning: ["Heb.5"], evening: ["Jer.43-45"] },
+      { morning: ["Heb.6"], evening: ["Jer.46-47"] },
+      { morning: ["Heb.7"], evening: ["Jer.48-49"] },
+      { morning: ["Heb.8"], evening: ["Jer.50"] },
+      { morning: ["Heb.9"], evening: ["Jer.51-52"] },
+      { morning: ["Heb.10:1-18"], evening: ["Lam.1-2"] },
+      { morning: ["Heb.10:19-39"], evening: ["Lam.3-4"] },
+      { morning: ["Heb.11:1-19"], evening: ["Ezek.1-2"] },
+      { morning: ["Heb.11:20-40"], evening: ["Ezek.3-4"] },
+      { morning: ["Heb.12"], evening: ["Ezek.5-7"] },
+      { morning: ["Heb.13"], evening: ["Ezek.8-10"] },
+      { morning: ["Jam.1"], evening: ["Ezek.11-13"] },
+      { morning: ["Jam.2"], evening: ["Ezek.14-15"] },
+      { morning: ["Jam.3"], evening: ["Ezek.16-17"] },
+      { morning: ["Jam.4"], evening: ["Ezek.18-19"] },
+      { morning: ["Jam.5"], evening: ["Ezek.20-21"] },
+      { morning: ["1 Pet.1"], evening: ["Ezek.22-23"] },
+      { morning: ["1 Pet.2"], evening: ["Ezek.24-26"] },
+      { morning: ["1 Pet.3"], evening: ["Ezek.27-29"] },
+      { morning: ["1 Pet.4"], evening: ["Ezek.30-32"] },
+      { morning: ["1 Pet.5"], evening: ["Ezek.33-34"] },
+      { morning: ["2 Pet.1"], evening: ["Ezek.35-36"] },
+      { morning: ["2 Pet.2"], evening: ["Ezek.37-39"] },
+      { morning: ["2 Pet.3"], evening: ["Ezek.40-41"] },
+      { morning: ["1 John.1"], evening: ["Ezek.42-44"] },
+      { morning: ["1 John.2"], evening: ["Ezek.45-46"] },
+      { morning: ["1 John.3"], evening: ["Ezek.47-48"] },
+      { morning: ["1 John.4"], evening: ["Dan.1-2"] },
+      { morning: ["1 John.5"], evening: ["Dan.3-4"] },
+      { morning: ["2 John.1"], evening: ["Dan.5-7"] },
+      { morning: ["3 John.1"], evening: ["Dan.8-10"] },
+      { morning: ["Jude.1"], evening: ["Dan.11-12"] },
+      { morning: ["Rev.1"], evening: ["Hos.1-4"] },
+      { morning: ["Rev.2"], evening: ["Hos.5-8"] },
+      { morning: ["Rev.3"], evening: ["Hos.9-11"] },
+      { morning: ["Rev.4"], evening: ["Hos.12-14"] },
+      { morning: ["Rev.5"], evening: ["Joel.1-3"] },
+      { morning: ["Rev.6"], evening: ["Amos.1-3"] },
+      { morning: ["Rev.7"], evening: ["Amos.4-6"] },
+      { morning: ["Rev.8"], evening: ["Amos.7-9"] },
+      { morning: ["Rev.9"], evening: ["Obad.1"] },
+      { morning: ["Rev.10"], evening: ["Jonah.1-4"] },
+      { morning: ["Rev.11"], evening: ["Mic.1-3"] },
+      { morning: ["Rev.12"], evening: ["Mic.4-5"] },
+      { morning: ["Rev.13"], evening: ["Mic.6-7"] },
+      { morning: ["Rev.14"], evening: ["Nah.1-3"] },
+      { morning: ["Rev.15"], evening: ["Hab.1-3"] },
+      { morning: ["Rev.16"], evening: ["Zep.1-3"] },
+      { morning: ["Rev.17"], evening: ["Hag.1-2"] },
+      { morning: ["Rev.18"], evening: ["Zach.1-4"] },
+      { morning: ["Rev.19"], evening: ["Zach.5-8"] },
+      { morning: ["Rev.20"], evening: ["Zach.9-12"] },
+      { morning: ["Rev.21"], evening: ["Zach.13-14"] },
+      { morning: ["Rev.22"], evening: ["Mal.1-4"] }
+    ];
+
+    // Mar 1 – Dec 31 for LEAP year (306 days, but shifted because of Feb 29)
+    const LEAP_END = [
+      { morning: ["Mar.7:14-37"], evening: ["Num.23-25"] },
+      { morning: ["Mar.8:1-21"], evening: ["Num.26-27"] },
+      { morning: ["Mar.8:22-38"], evening: ["Num.28-30"] },
+      { morning: ["Mar.9:1-29"], evening: ["Num.31-33"] },
+      { morning: ["Mar.9:30-50"], evening: ["Num.34-36"] },
+      { morning: ["Mar.10:1-31"], evening: ["Deu.1-2"] },
+      // ... (rest is identical to NON_LEAP_END from Mar 2 onward)
+      // So we reuse NON_LEAP_END from index 1 onward
+    ];
+    // Complete LEAP_END by appending the rest
+    LEAP_END.push(...NON_LEAP_END.slice(1));
+
+    // === DYNAMIC PLAN SELECTION ===
+    const CURRENT_YEAR = new Date().getFullYear();
+    const IS_LEAP = isLeapYear(CURRENT_YEAR);
+    const READING_PLAN_EN = IS_LEAP
+      ? [...COMMON_START, FEB29, ...LEAP_END]
+      : [...COMMON_START, ...NON_LEAP_END];
+
+    // === Rest of your app (unchanged except for year logic) ===
+    const TAMIL_MAP = {
+      "Mat.": "மத்.",
+      "Mar.": "மாற்.",
+      "Luk.": "லூக்.",
+      "John.": "யோவா.",
+      "Act.": "அப்.",
+      "Rom.": "ரோம.",
+      "1 Cor.": "1 கொரி.",
+      "2 Cor.": "2 கொரி.",
+      "Gal.": "கலா.",
+      "Eph.": "எபி.",
+      "Phil.": "பிலி.",
+      "Col.": "கொலோ.",
+      "1 Thes.": "1 தெச.",
+      "2 Thes.": "2 தெச.",
+      "1 Tim.": "1 தீமோ.",
+      "2 Tim.": "2 தீமோ.",
+      "Tit.": "தீத்து.",
+      "Phm.": "பிலேமோ.",
+      "Heb.": "எபிரே.",
+      "Jam.": "யாக்கோ.",
+      "1 Pet.": "1 பேது.",
+      "2 Pet.": "2 பேது.",
+      "1 John.": "1 யோவா.",
+      "2 John.": "2 யோவா.",
+      "3 John.": "3 யோவா.",
+      "Jude.": "யூதா.",
+      "Rev.": "வெளி.",
+      "Gen.": "ஆதி.",
+      "Exo.": "யாத்.",
+      "Lev.": "லேவி.",
+      "Num.": "எண்.",
+      "Deu.": "உபா.",
+      "Jos.": "யோசு.",
+      "Judg.": "நியா.",
+      "Ruth.": "ரூத்.",
+      "1 Sam.": "1 சமு.",
+      "2 Sam.": "2 சமு.",
+      "1 King.": "1 இரா.",
+      "2 King.": "2 இரா.",
+      "1 Chro.": "1 நாளா.",
+      "2 Chro.": "2 நாளா.",
+      "Ezra.": "எஸ்ரா.",
+      "Neh.": "நெகே.",
+      "Esth.": "எஸ்த.",
+      "Job.": "யோபு.",
+      "Psa.": "சங்.",
+      "Pro.": "நீதி.",
+      "Ecc.": "பிரச.",
+      "Song.": "உன்ன.",
+      "Isa.": "ஏசா.",
+      "Jer.": "எரே.",
+      "Lam.": "புல.",
+      "Ezek.": "எசே.",
+      "Dan.": "தானி.",
+      "Hos.": "ஓசியா.",
+      "Joel.": "யோவே.",
+      "Amos.": "ஆமோ.",
+      "Obad.": "ஓபதி.",
+      "Jonah.": "யோனா.",
+      "Mic.": "மீகா.",
+      "Nah.": "நாகூ.",
+      "Hab.": "ஆப.",
+      "Zep.": "செப.",
+      "Hag.": "ஆகாய்.",
+      "Zach.": "சகரி.",
+      "Mal.": "மல்கி."
+    };
+    function convertToTamil(ref) {
+      const books = Object.keys(TAMIL_MAP).sort((a, b) => b.length - a.length);
+      for (const book of books) {
+        if (ref.startsWith(book)) {
+          return TAMIL_MAP[book] + ref.slice(book.length);
+        }
+      }
+      return ref;
+    }
+    const READING_PLAN_TA = READING_PLAN_EN.map(day => ({
+      morning: day.morning.map(convertToTamil),
+      evening: day.evening.map(convertToTamil)
+    }));
+
+    // === Rest of your original code (mostly unchanged) ===
+    let currentDayIndex = null;
+    let currentView = 'today';
+
+    function isDarkMode() {
+      return document.body.classList.contains('dark-mode');
+    }
+    function setTheme(dark) {
+      if (dark) {
+        document.body.classList.add('dark-mode');
+        localStorage.setItem('theme', 'dark');
+        document.getElementById('theme-toggle').innerHTML = '<i class="fas fa-sun"></i>';
+      } else {
+        document.body.classList.remove('dark-mode');
+        localStorage.setItem('theme', 'light');
+        document.getElementById('theme-toggle').innerHTML = '<i class="fas fa-moon"></i>';
+      }
+    }
+    function toggleTheme() {
+      setTheme(!isDarkMode());
+    }
+    function applySavedTheme() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark') {
+        setTheme(true);
+      } else if (saved === 'light') {
+        setTheme(false);
+      } else {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          setTheme(true);
+        } else {
+          setTheme(false);
+        }
+      }
+    }
+    function loadProgress() {
+      const saved = localStorage.getItem('bibleProgress');
+      return saved ? JSON.parse(saved) : {};
+    }
+    function saveProgress(progress) {
+      localStorage.setItem('bibleProgress', JSON.stringify(progress));
+    }
+    function renderReadings(dayIndex) {
+      if (dayIndex < 0 || dayIndex >= READING_PLAN_EN.length) return;
+      const targetDate = new Date(CURRENT_YEAR, 0, 1);
+      targetDate.setDate(targetDate.getDate() + dayIndex);
+      document.getElementById('today-date').textContent = targetDate.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric'
+      });
+      const en = READING_PLAN_EN[dayIndex];
+      const ta = READING_PLAN_TA[dayIndex];
+      const render = (id, enRefs, taRefs) => {
+        document.getElementById(id).innerHTML = enRefs.map((enRef, i) => {
+          const taRef = taRefs[i] || enRef;
+          return `<div class="verse-item"><div class="ref-en">${enRef}</div><div class="ref-ta">${taRef}</div></div>`;
+        }).join('');
+      };
+      render('morning-list', en.morning, ta.morning);
+      render('evening-list', en.evening, ta.evening);
+      currentDayIndex = dayIndex;
+      const now = new Date();
+      const startOfYear = new Date(CURRENT_YEAR, 0, 1);
+      const currentDayOfYear = Math.floor((now - startOfYear) / 86400000);
+      const isToday = (dayIndex === currentDayOfYear && now.getFullYear() === CURRENT_YEAR);
+      const todayBtn = document.getElementById('today-btn');
+      if (isToday) {
+        todayBtn.style.display = 'none';
+      } else {
+        todayBtn.style.display = 'flex';
+      }
+    }
+    function goToDay(offset) {
+      const startOfYear = new Date(CURRENT_YEAR, 0, 1);
+      const now = new Date();
+      const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+      let target = offset === 0 ? dayOfYear : (currentDayIndex !== null ? currentDayIndex + offset : dayOfYear + offset);
+      target = Math.max(0, Math.min(READING_PLAN_EN.length - 1, target));
+      renderReadings(target);
+      if (currentView !== 'today') showTab('today');
+    }
+    function goToToday() {
+      const startOfYear = new Date(CURRENT_YEAR, 0, 1);
+      const now = new Date();
+      const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+      renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
+      if (currentView !== 'today') showTab('today');
+    }
+    function markAsRead() {
+      if (currentDayIndex === null) return;
+      const progress = loadProgress();
+      progress[currentDayIndex] = true;
+      saveProgress(progress);
+      const btn = document.querySelector('.progress-btn');
+      const original = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check"></i> Done';
+      setTimeout(() => { btn.innerHTML = original; }, 1000);
+    }
+    function showTab(view) {
+      currentView = view;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const todayView = document.getElementById('today-view');
+      const calendarView = document.getElementById('calendar-view');
+      const bibleView = document.getElementById('bible-view');
+      if (view === 'today') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        todayView.style.display = 'flex';
+        calendarView.style.display = 'none';
+        bibleView.style.display = 'none';
+      } else if (view === 'calendar') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        todayView.style.display = 'none';
+        renderFullCalendar();
+        calendarView.style.display = 'block';
+        bibleView.style.display = 'none';
+      } else if (view === 'bible') {
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        todayView.style.display = 'none';
+        calendarView.style.display = 'none';
+        bibleView.style.display = 'block';
+      }
+    }
+    function renderFullCalendar() {
+      const container = document.getElementById('calendar-view');
+      container.innerHTML = '';
+      const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const progress = loadProgress();
+      const year = CURRENT_YEAR;
+      for (let month = 0; month < 12; month++) {
+        const monthDiv = document.createElement('div');
+        monthDiv.style.marginBottom = '16px';
+        const monthHeader = document.createElement('div');
+        monthHeader.textContent = months[month];
+        monthHeader.style.color = 'var(--accent)';
+        monthHeader.style.fontSize = '0.95rem';
+        monthHeader.style.marginBottom = '8px';
+        monthDiv.appendChild(monthHeader);
+        const grid = document.createElement('div');
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = 'repeat(7, 1fr)';
+        grid.style.gap = '2px';
+        grid.style.fontSize = '0.75rem';
+        const firstDay = new Date(year, month, 1);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const startDay = firstDay.getDay();
+        const prevMonthDays = new Date(year, month, 0).getDate();
+        for (let i = startDay - 1; i >= 0; i--) {
+          const dayEl = document.createElement('div');
+          dayEl.textContent = prevMonthDays - i;
+          dayEl.style.color = '#888';
+          dayEl.style.opacity = '0.4';
+          dayEl.style.textAlign = 'center';
+          grid.appendChild(dayEl);
+        }
+        const today = new Date();
+        const isCurrentYear = (today.getFullYear() === year);
+        const isCurrentMonth = (isCurrentYear && today.getMonth() === month);
+        const todayDate = today.getDate();
+        for (let day = 1; day <= daysInMonth; day++) {
+          const date = new Date(year, month, day);
+          const dayOfYear = Math.floor((date - new Date(year, 0, 1)) / 86400000);
+          const isToday = isCurrentMonth && day === todayDate;
+          const isCompleted = progress[dayOfYear] === true;
+          const isFuture = dayOfYear >= READING_PLAN_EN.length;
+          const dayEl = document.createElement('div');
+          dayEl.textContent = day;
+          dayEl.style.textAlign = 'center';
+          dayEl.style.padding = '4px 0';
+          dayEl.style.borderRadius = '4px';
+          if (isFuture) {
+            dayEl.style.color = '#888';
+            dayEl.style.opacity = '0.4';
+          } else {
+            if (isCompleted) {
+              dayEl.style.background = 'var(--success)';
+              dayEl.style.color = 'white';
+            }
+            if (isToday && !isCompleted) {
+              dayEl.style.background = 'var(--accent)';
+              dayEl.style.color = 'white';
+            }
+            if (!isCompleted && !isToday) {
+              dayEl.style.cursor = 'pointer';
+              dayEl.onclick = () => {
+                renderReadings(dayOfYear);
+                showTab('today');
+              };
+            }
+          }
+          grid.appendChild(dayEl);
+        }
+        const totalCells = grid.children.length;
+        const remaining = 42 - totalCells;
+        for (let i = 1; i <= remaining; i++) {
+          const dayEl = document.createElement('div');
+          dayEl.textContent = i;
+          dayEl.style.color = '#888';
+          dayEl.style.opacity = '0.4';
+          dayEl.style.textAlign = 'center';
+          grid.appendChild(dayEl);
+        }
+        monthDiv.appendChild(grid);
+        container.appendChild(monthDiv);
+      }
+    }
+    async function shareReadingsAsImage() {
+      if (currentDayIndex === null) return;
+      if (!window.html2canvas) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+      const en = READING_PLAN_EN[currentDayIndex];
+      const ta = READING_PLAN_TA[currentDayIndex];
+      const dateStr = document.getElementById('today-date').textContent;
+      const card = document.createElement('div');
+      card.style.cssText = `
+        position: fixed;
+        left: -9999px;
+        top: -9999px;
+        width: 320px;
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #222;
+        line-height: 1.4;
+        border: 1px solid #e0e0e0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      `;
+      card.innerHTML = `
+        <div style="text-align:center; margin-bottom:12px; color:#2c5a8c; font-weight:600;">
+          <i class="fas fa-book-open"></i> One Year Bible<br>
+          <span style="font-size:0.9rem; color:#555;">${dateStr}</span>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div style="font-weight:600; margin-bottom:6px; color:#2c5a8c;"><i class="fas fa-sun"></i> Morning</div>
+          <div style="font-size:1.05rem;">${en.morning.join(', ')}</div>
+          <div style="font-size:1.05rem; font-family:'Noto Sans Tamil','Latha',sans-serif; color:#444; margin-top:3px;">
+            ${ta.morning.join(', ')}
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:600; margin-bottom:6px; color:#2c5a8c;"><i class="fas fa-moon"></i> Evening</div>
+          <div style="font-size:1.05rem;">${en.evening.join(', ')}</div>
+          <div style="font-size:1.05rem; font-family:'Noto Sans Tamil','Latha',sans-serif; color:#444; margin-top:3px;">
+            ${ta.evening.join(', ')}
+          </div>
+        </div>
+        <div style="margin-top:16px; text-align:center; font-size:0.85rem; color:#666;">
+          — New Jerusalem Church
+        </div>
+      `;
+      document.body.appendChild(card);
+      const canvas = await html2canvas(card, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+      document.body.removeChild(card);
+      return new Promise((resolve) => {
+        canvas.toBlob(blob => resolve(blob), 'image/png');
+      });
+    }
+    async function shareReadings() {
+      try {
+        const blob = await shareReadingsAsImage();
+        if (!blob) throw new Error('Image creation failed');
+        const file = new File([blob], 'NJC_Bible_Reading.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'Today’s Bible Reading',
+            text: '📖 My daily Bible reading from New Jerusalem Church',
+            files: [file]
+          });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'NJC_Bible_Reading.png';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      } catch (err) {
+        console.error('Share failed:', err);
+      }
+    }
+    window.addEventListener('load', () => {
+      applySavedTheme();
+      const startOfYear = new Date(CURRENT_YEAR, 0, 1);
+      const now = new Date();
+      const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+      renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
+    });
+  </script>
+</body>
+</html>
