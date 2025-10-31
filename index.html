@@ -330,6 +330,7 @@
     let READING_PLAN_EN = [];
     let READING_PLAN_TA = [];
     let TAMIL_MAP = {};
+    let BOOK_INDEX_MAP = {}; // Maps English abbreviations to book indices
     const TAMIL_BOOK_NAMES = [
       "ஆதியாகமம்", "யாத்திராகமம்", "லேவியராகமம்", "எண்ணாகமம்", "உபாகமம்", "யோசுவா", "நியாயாதிபதிகள்", "ரூத்", "1 சாமுவேல்",
       "2 சாமுவேல்", "1 இராஜாக்கள்", "2 இராஜாக்கள்", "1 நாளாகமம்", "2 நாளாகமம்", "எஸ்றா", "நெகேமியா", "எஸ்தர்", "யோபு",
@@ -347,17 +348,19 @@
         return;
       }
 
-      // Extract book and chapter (e.g., "Mat.1" → book="Mat.", chap=1)
+      // Extract book and chapter
+      // Handle formats like: "Mat.1", "Gen.1-3", "Mat.5:1-26"
       let bookKey = '';
       let chapterNum = 1;
 
-      // Try English format
-      const engMatch = ref.match(/^([A-Za-z.]+?)(\d+)/);
+      // Try English format - matches book abbreviation followed by chapter number
+      // Handles: "Mat.1", "Gen.1-3", "Mat.5:1-26", etc.
+      const engMatch = ref.match(/^([A-Za-z]+\.)(\d+)/);
       if (engMatch) {
         bookKey = engMatch[1];
         chapterNum = parseInt(engMatch[2], 10);
       } else {
-        // Try Tamil format (e.g., "ஆதி.1")
+        // Try Tamil format (e.g., "ஆதி.1", "மத்.5:1-26")
         const taMatch = ref.match(/^([^\d\s]+?)\.(\d+)/);
         if (taMatch) {
           const taBook = taMatch[1] + '.';
@@ -377,24 +380,40 @@
         return;
       }
 
-      // Find book index using English key
-      const bookIndex = Object.keys(TAMIL_MAP).indexOf(bookKey);
-      if (bookIndex === -1 || bookIndex >= TAMIL_BIBLE.books.length) {
+      // Find book index using BOOK_INDEX_MAP
+      const bookIndex = BOOK_INDEX_MAP[bookKey];
+      if (bookIndex === undefined || bookIndex < 0 || bookIndex >= TAMIL_BIBLE.books.length) {
         console.warn('Book not found:', bookKey);
         return;
       }
 
+      // Ensure chapter number is valid (1-indexed to 0-indexed conversion)
       const maxChap = TAMIL_BIBLE.books[bookIndex].chapters.length;
       const safeChapter = Math.max(0, Math.min(chapterNum - 1, maxChap - 1));
 
-      // Switch to Bible tab and load
+      // Switch to Bible tab and load the correct book and chapter
       showTab('bible');
       setTimeout(() => {
-        document.getElementById('book-select').value = bookIndex;
+        const bookSelect = document.getElementById('book-select');
+        const chapterSelect = document.getElementById('chapter-select');
+        
+        // Set book
+        bookSelect.value = bookIndex;
         loadChapters();
-        document.getElementById('chapter-select').value = safeChapter;
-        loadVerses();
-        document.getElementById('verse-display').scrollIntoView({ behavior: 'smooth' });
+        
+        // Wait a bit more for chapters to load, then set chapter
+        setTimeout(() => {
+          chapterSelect.value = safeChapter;
+          loadVerses();
+          
+          // Scroll to verse display
+          setTimeout(() => {
+            document.getElementById('verse-display').scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start' 
+            });
+          }, 50);
+        }, 50);
       }, 100);
     }
 
@@ -419,6 +438,35 @@
         const planData = await planRes.json();
         READING_PLAN_EN = planData.readingPlan;
         TAMIL_MAP = planData.tamilMap;
+        
+        // Build BOOK_INDEX_MAP by matching Tamil abbreviations to TAMIL_BOOK_NAMES
+        BOOK_INDEX_MAP = {};
+        for (const [enAbbr, taAbbr] of Object.entries(TAMIL_MAP)) {
+          // Remove the trailing period from Tamil abbreviation for matching
+          const taAbbrClean = taAbbr.replace(/\.$/, '').trim();
+          // Find matching book by checking if Tamil name starts with abbreviation
+          const bookIndex = TAMIL_BOOK_NAMES.findIndex((name) => {
+            // Extract number prefix if any (e.g., "1" from "1 சாமுவேல்")
+            const nameNumMatch = name.match(/^(\d+)\s+/);
+            const abbrNumMatch = taAbbrClean.match(/^(\d+)\s+/);
+            // Both must have same number prefix (or both have none)
+            if ((nameNumMatch && !abbrNumMatch) || (!nameNumMatch && abbrNumMatch)) {
+              return false;
+            }
+            if (nameNumMatch && abbrNumMatch && nameNumMatch[1] !== abbrNumMatch[1]) {
+              return false;
+            }
+            // Remove number prefix and check if name starts with abbreviation
+            const nameWithoutNum = name.replace(/^\d+\s+/, '').trim();
+            const abbrWithoutNum = taAbbrClean.replace(/^\d+\s+/, '').trim();
+            return nameWithoutNum.startsWith(abbrWithoutNum) || abbrWithoutNum.startsWith(nameWithoutNum.substring(0, 2));
+          });
+          if (bookIndex !== -1) {
+            BOOK_INDEX_MAP[enAbbr] = bookIndex;
+          } else {
+            console.warn('Could not map book:', enAbbr, '->', taAbbr);
+          }
+        }
 
         READING_PLAN_TA = READING_PLAN_EN.map(day => ({
           morning: day.morning.map(r => {
