@@ -66,6 +66,15 @@
       background: var(--card);
       box-shadow: 0 1px 6px rgba(0,0,0,0.1);
       z-index: 10;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      transform: translateY(-100%);
+      transition: transform 0.3s ease-in-out;
+    }
+    .title-bar.visible {
+      transform: translateY(0);
     }
     .title-bar h1 {
       font-size: 1.25rem;
@@ -91,6 +100,13 @@
       display: flex;
       background: var(--card);
       border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 9;
+      transition: top 0.3s ease-in-out;
+    }
+    .title-bar.visible ~ .tabs {
+      top: 60px;
     }
     .tab-btn {
       flex: 1;
@@ -115,6 +131,7 @@
       padding: 16px;
       gap: 16px;
       overflow: hidden;
+      margin-top: 0;
     }
     #today-view {
       display: flex;
@@ -217,6 +234,64 @@
       color: var(--accent);
       font-weight: bold;
       margin-right: 6px;
+    }
+    .search-result-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: block;
+      text-decoration: none;
+      color: inherit;
+    }
+    .search-result-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+    .search-result-item:active {
+      transform: translateY(0);
+    }
+    .search-result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .search-result-ref {
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .search-result-ref i {
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+    .search-result-text {
+      color: var(--text);
+      font-size: 1rem;
+      line-height: 1.5;
+      font-family: "Noto Sans Tamil", "Latha", sans-serif;
+      margin-top: 6px;
+    }
+    .search-results-count {
+      padding: 12px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      color: var(--accent);
+      font-weight: 600;
+      text-align: center;
+      font-size: 0.95rem;
     }
     .bottom-bar {
       display: flex;
@@ -391,6 +466,21 @@
       const maxChap = TAMIL_BIBLE.books[bookIndex].chapters.length;
       const safeChapter = Math.max(0, Math.min(chapterNum - 1, maxChap - 1));
 
+      // Navigate to the book and chapter
+      navigateToBookChapter(bookIndex, safeChapter);
+    }
+    
+    // Navigate to specific book and chapter by index
+    function navigateToBookChapter(bookIndex, chapterIndex) {
+      if (bookIndex < 0 || bookIndex >= TAMIL_BIBLE.books.length) {
+        console.warn('Invalid book index:', bookIndex);
+        return;
+      }
+      
+      // Ensure chapter index is valid
+      const maxChap = TAMIL_BIBLE.books[bookIndex].chapters.length;
+      const safeChapter = Math.max(0, Math.min(chapterIndex, maxChap - 1));
+      
       // Switch to Bible tab and load the correct book and chapter
       showTab('bible');
       setTimeout(() => {
@@ -560,8 +650,10 @@
           chapter.forEach((verseText, verseIndex) => {
             if (verseText.toLowerCase().includes(query)) {
               results.push({
+                bookIndex: bookIndex,
                 book: book.name,
                 chapter: chapIndex + 1,
+                chapterIndex: chapIndex,
                 verseNum: verseIndex + 1,
                 text: verseText
               });
@@ -570,11 +662,27 @@
         });
       });
       if (results.length === 0) {
-        display.innerHTML = '<p style="text-align:center; color:var(--text-secondary);">தேடல் முடிவுகள் இல்லை.</p>';
+        display.innerHTML = '<div class="search-results-count" style="color:var(--text-secondary);">தேடல் முடிவுகள் இல்லை.</div>';
       } else {
-        let html = `<p style="margin-bottom:12px;"><strong>${results.length} முடிவுகள் கிடைத்தன:</strong></p>`;
-        results.forEach(r => {
-          html += `<p><strong>${r.book} ${r.chapter}:${r.verseNum}</strong><br>${r.text}</p>`;
+        // Highlight search query in results
+        const highlightQuery = (text, query) => {
+          const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+          const isDark = document.body.classList.contains('dark-mode');
+          const bgColor = isDark ? 'rgba(77, 166, 255, 0.3)' : 'rgba(44, 90, 140, 0.2)';
+          return text.replace(regex, `<mark style="background-color:${bgColor}; padding:2px 0; border-radius:2px; font-weight:500;">$1</mark>`);
+        };
+        
+        let html = `<div class="search-results-count"><i class="fas fa-search"></i> ${results.length} முடிவுகள் கிடைத்தன</div>`;
+        results.forEach((r, idx) => {
+          html += `<div class="search-result-item" onclick="navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex})" role="button" tabindex="0" onkeypress="if(event.key==='Enter') navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex})">
+                    <div class="search-result-header">
+                      <div class="search-result-ref">
+                        <i class="fas fa-book"></i>
+                        ${r.book} ${r.chapter}:${r.verseNum}
+                      </div>
+                    </div>
+                    <div class="search-result-text">${highlightQuery(r.text, query)}</div>
+                  </div>`;
         });
         display.innerHTML = html;
       }
@@ -872,10 +980,77 @@
       }
     }
 
+    // === TITLE BAR SHOW/HIDE ON INTERACTION ===
+    let hideTitleBarTimeout = null;
+    let titleBar = null;
+    
+    function showTitleBar() {
+      if (!titleBar) titleBar = document.querySelector('.title-bar');
+      if (titleBar) {
+        titleBar.classList.add('visible');
+        // Clear existing timeout
+        if (hideTitleBarTimeout) {
+          clearTimeout(hideTitleBarTimeout);
+        }
+        // Auto-hide after 3 seconds of inactivity
+        hideTitleBarTimeout = setTimeout(() => {
+          if (titleBar) {
+            titleBar.classList.remove('visible');
+          }
+        }, 3000);
+      }
+    }
+    
+    function hideTitleBar() {
+      if (!titleBar) titleBar = document.querySelector('.title-bar');
+      if (titleBar) {
+        titleBar.classList.remove('visible');
+      }
+    }
+    
+    // Show on touch
+    document.addEventListener('touchstart', showTitleBar, { passive: true });
+    document.addEventListener('touchend', showTitleBar, { passive: true });
+    
+    // Keep visible when interacting with title bar buttons
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.title-bar, .nav-btn')) {
+        showTitleBar();
+      }
+    }, { passive: true });
+    
+    // Show on scroll
+    let lastScrollTop = 0;
+    document.addEventListener('scroll', () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      // Show on scroll direction change
+      if (Math.abs(scrollTop - lastScrollTop) > 5) {
+        showTitleBar();
+      }
+      lastScrollTop = scrollTop;
+    }, { passive: true });
+    
+    // Show on mouse move (for desktop)
+    let mouseMoveTimer = null;
+    document.addEventListener('mousemove', () => {
+      if (mouseMoveTimer) clearTimeout(mouseMoveTimer);
+      showTitleBar();
+      // Hide mouse cursor after 2 seconds of no movement
+      mouseMoveTimer = setTimeout(() => {
+        if (!document.querySelector(':hover')) {
+          hideTitleBar();
+        }
+      }, 2000);
+    }, { passive: true });
+
     // === INIT ===
     window.addEventListener('load', () => {
       applySavedTheme();
       loadAppData();
+      // Initially hide the title bar
+      if (titleBar) {
+        titleBar.classList.remove('visible');
+      }
     });
   </script>
 </body>
