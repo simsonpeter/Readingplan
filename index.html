@@ -154,15 +154,9 @@
     .verse-item {
       margin: 6px 0;
       cursor: pointer;
-      padding: 4px;
-      border-radius: 6px;
-      transition: background 0.2s;
     }
     .verse-item:hover {
-      background: rgba(44, 90, 140, 0.05);
-    }
-    .dark-mode .verse-item:hover {
-      background: rgba(77, 166, 255, 0.1);
+      opacity: 0.8;
     }
     .ref-en {
       font-weight: 600;
@@ -249,8 +243,7 @@
     }
     .bottom-bar .share-btn { background: var(--success); }
     .bottom-bar button i { font-size: 1.1rem; }
-
-    /* === TEMPORARY NAV BUTTONS (APPEAR ON TAP) === */
+    /* === FIXED NAV BUTTONS === */
     #bible-nav-buttons {
       display: flex;
       position: sticky;
@@ -260,13 +253,6 @@
       z-index: 5;
       justify-content: center;
       gap: 16px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    #bible-nav-buttons.visible {
-      opacity: 1;
-      pointer-events: auto;
     }
     #bible-nav-buttons button {
       padding: 10px 20px;
@@ -315,11 +301,11 @@
     <div id="calendar-view"></div>
     <div id="bible-view">
       <div class="selector-row">
-        <select id="book-select" lang="ta" onchange="loadChapters()" disabled><option>புத்தகம் தேர்வு செய்யப்படவில்லை</option></select>
-        <select id="chapter-select" lang="ta" onchange="loadVerses()" disabled><option>அதிகாரம் தேர்வு செய்யப்படவில்லை</option></select>
+        <select id="book-select" onchange="loadChapters()" disabled><option>புத்தகம் தேர்வு செய்யப்படவில்லை</option></select>
+        <select id="chapter-select" onchange="loadVerses()" disabled><option>அதிகாரம் தேர்வு செய்யப்படவில்லை</option></select>
       </div>
       <input type="text" id="bible-search" placeholder="Search entire Bible..." oninput="searchWholeBible(this.value)">
-      <div class="verse-display" id="verse-display" onclick="showNavTemporarily()">
+      <div class="verse-display" id="verse-display">
         பைபிள் ஏற்றப்படுகிறது...
       </div>
       <div id="bible-nav-buttons">
@@ -339,68 +325,84 @@
   <div class="watermark">JayathaSoft</div>
 
   <script>
-    // === LOAD EXTERNAL FILES ===
+    // === GLOBALS ===
     let TAMIL_BIBLE = null;
     let READING_PLAN_EN = [];
     let READING_PLAN_TA = [];
+    let TAMIL_MAP = {};
     const TAMIL_BOOK_NAMES = [
       "ஆதியாகமம்", "யாத்திராகமம்", "லேவியராகமம்", "எண்ணாகமம்", "உபாகமம்", "யோசுவா", "நியாயாதிபதிகள்", "ரூத்", "1 சாமுவேல்",
       "2 சாமுவேல்", "1 இராஜாக்கள்", "2 இராஜாக்கள்", "1 நாளாகமம்", "2 நாளாகமம்", "எஸ்றா", "நெகேமியா", "எஸ்தர்", "யோபு",
       "சங்கீதம்", "நீதிமொழிகள்", "பிரசங்கி", "உன்னதப்பாட்டு", "ஏசாயா", "எரேமியா", "புலம்பல்", "எசேக்கியேல்", "தானியேல்", "ஓசியா",
       "யோவேல்", "ஆமோஸ்", "ஒபதியா", "யோனா", "மீகா", "நாகூம்", "ஆபகூக்", "செப்பனியா", "ஆகாய்", "சகரியா", "மல்கியா",
-      "மத்தேயு", "மாற்கு", "லூக்கா", "யோவான்", "அப்போஸ்தலர்", "ரோமர்", "1 கொரிந்தியர்", "2 கொரிந்தியர்", "கலாத்தியர்",
+      "மத்தேயு", "மாற்கு", "லுூக்கா", "யோவான்", "அப்போஸ்தலர்", "ரோமர்", "1 கொரிந்தியர்", "2 கொரிந்தியர்", "கலாத்தியர்",
       "எபேசியர்", "பிலிப்பியர்", "கொலோசெயர்", "1 தெசலோனிக்கேயர்", "2 தெசலோனிக்கேயர்", "1 தீமோத்தேயு", "2 தீமோத்தேயு", "தீத்து",
       "பிலேமோன்", "எபிரெயர்", "யாக்கோபு", "1 பேதுரு", "2 பேதுரு", "1 யோவான்", "2 யோவான்", "3 யோவான்", "யூதா", "வெளி"
     ];
 
-    // === HELPER: Get UTC-based day of year ===
-    function getUTCDayOfYear(date) {
-      const year = date.getUTCFullYear();
-      const start = Date.UTC(year, 0, 1);
-      const today = Date.UTC(year, date.getUTCMonth(), date.getUTCDate());
-      return Math.floor((today - start) / 86400000);
-    }
+    // === CLICK HANDLER FOR REFERENCES ===
+    function openBibleReference(ref) {
+      if (!TAMIL_BIBLE) {
+        alert('பைபிள் இன்னும் ஏற்றப்படவில்லை.');
+        return;
+      }
 
-    // === PARSE REFERENCE (e.g., "Gen 1:1-5" or "Psalm 23") ===
-    function parseReference(ref) {
-      const enBookNames = [
-        "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth", "1 Samuel",
-        "2 Samuel", "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles", "Ezra", "Nehemiah", "Esther", "Job",
-        "Psalms", "Proverbs", "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah", "Lamentations", "Ezekiel", "Daniel", "Hosea",
-        "Joel", "Amos", "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi",
-        "Matthew", "Mark", "Luke", "John", "Acts", "Romans", "1 Corinthians", "2 Corinthians", "Galatians",
-        "Ephesians", "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus",
-        "Philemon", "Hebrews", "James", "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"
-      ];
-      for (let i = 0; i < enBookNames.length; i++) {
-        if (ref.startsWith(enBookNames[i])) {
-          const rest = ref.slice(enBookNames[i].length).trim();
-          const chapterMatch = rest.match(/^(\d+)/);
-          const chapter = chapterMatch ? parseInt(chapterMatch[1], 10) : 1;
-          return { bookIndex: i, chapter: chapter };
+      // Extract book and chapter (e.g., "Mat.1" → book="Mat.", chap=1)
+      let bookKey = '';
+      let chapterNum = 1;
+
+      // Try English format
+      const engMatch = ref.match(/^([A-Za-z.]+?)(\d+)/);
+      if (engMatch) {
+        bookKey = engMatch[1];
+        chapterNum = parseInt(engMatch[2], 10);
+      } else {
+        // Try Tamil format (e.g., "ஆதி.1")
+        const taMatch = ref.match(/^([^\d\s]+?)\.(\d+)/);
+        if (taMatch) {
+          const taBook = taMatch[1] + '.';
+          chapterNum = parseInt(taMatch[2], 10);
+          // Find English key from TAMIL_MAP
+          for (const [en, ta] of Object.entries(TAMIL_MAP)) {
+            if (ta === taBook) {
+              bookKey = en;
+              break;
+            }
+          }
         }
       }
-      return null;
-    }
 
-    // === JUMP TO VERSE (from reading plan or search) ===
-    function jumpToBible(bookIndex, chapter) {
-      if (!TAMIL_BIBLE) return;
-      document.getElementById('book-select').value = bookIndex;
-      loadChapters();
-      const chapterSelect = document.getElementById('chapter-select');
-      const chapIndex = chapter - 1;
-      if (chapIndex >= 0 && chapIndex < TAMIL_BIBLE.books[bookIndex].chapters.length) {
-        chapterSelect.value = chapIndex;
-        loadVerses();
+      if (!bookKey) {
+        console.warn('Could not parse reference:', ref);
+        return;
       }
+
+      // Find book index using English key
+      const bookIndex = Object.keys(TAMIL_MAP).indexOf(bookKey);
+      if (bookIndex === -1 || bookIndex >= TAMIL_BIBLE.books.length) {
+        console.warn('Book not found:', bookKey);
+        return;
+      }
+
+      const maxChap = TAMIL_BIBLE.books[bookIndex].chapters.length;
+      const safeChapter = Math.max(0, Math.min(chapterNum - 1, maxChap - 1));
+
+      // Switch to Bible tab and load
       showTab('bible');
+      setTimeout(() => {
+        document.getElementById('book-select').value = bookIndex;
+        loadChapters();
+        document.getElementById('chapter-select').value = safeChapter;
+        loadVerses();
+        document.getElementById('verse-display').scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     }
 
+    // === LOAD EXTERNAL DATA ===
     async function loadAppData() {
       try {
+        // Load Bible
         const bibleRes = await fetch('bibles/tamilbible.json');
-        if (!bibleRes.ok) throw new Error('tamilbible.json not found');
         const bibleData = await bibleRes.json();
         TAMIL_BIBLE = {
           books: bibleData.Book.map((bookObj, index) => {
@@ -411,36 +413,47 @@
             return { name, chapters };
           })
         };
-        document.getElementById('book-select').disabled = false;
-        populateBooks();
 
+        // Load Plan
         const planRes = await fetch('plan/njcplan.json');
-        if (!planRes.ok) throw new Error('njcplan.json not found');
         const planData = await planRes.json();
         READING_PLAN_EN = planData.readingPlan;
-        const TAMIL_MAP = planData.tamilMap;
-
-        function convertToTamil(ref) {
-          const books = Object.keys(TAMIL_MAP).sort((a, b) => b.length - a.length);
-          for (const book of books) {
-            if (ref.startsWith(book)) {
-              return TAMIL_MAP[book] + ref.slice(book.length);
-            }
-          }
-          return ref;
-        }
+        TAMIL_MAP = planData.tamilMap;
 
         READING_PLAN_TA = READING_PLAN_EN.map(day => ({
-          morning: day.morning.map(convertToTamil),
-          evening: day.evening.map(convertToTamil)
+          morning: day.morning.map(r => {
+            const ta = convertToTamil(r);
+            return `<span onclick="openBibleReference('${r}')">${ta}</span>`;
+          }),
+          evening: day.evening.map(r => {
+            const ta = convertToTamil(r);
+            return `<span onclick="openBibleReference('${r}')">${ta}</span>`;
+          })
         }));
 
-        goToToday(); // Use corrected UTC logic
+        // Render today
+        const now = new Date();
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+        renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
+
+        document.getElementById('book-select').disabled = false;
+        populateBooks();
         document.getElementById('verse-display').innerHTML = 'புத்தகத்தைத் தேர்ந்தெடுக்கவும்.';
       } catch (err) {
-        console.error('App load error:', err);
+        console.error('Failed to load app data:', err);
         document.getElementById('verse-display').innerHTML = 'தவறு: ' + err.message;
       }
+    }
+
+    function convertToTamil(ref) {
+      const books = Object.keys(TAMIL_MAP).sort((a, b) => b.length - a.length);
+      for (const book of books) {
+        if (ref.startsWith(book)) {
+          return TAMIL_MAP[book] + ref.slice(book.length);
+        }
+      }
+      return ref;
     }
 
     // === BIBLE UI FUNCTIONS ===
@@ -499,11 +512,10 @@
           chapter.forEach((verseText, verseIndex) => {
             if (verseText.toLowerCase().includes(query)) {
               results.push({
-                bookIndex,
+                book: book.name,
                 chapter: chapIndex + 1,
                 verseNum: verseIndex + 1,
-                text: verseText,
-                bookName: book.name
+                text: verseText
               });
             }
           });
@@ -514,9 +526,7 @@
       } else {
         let html = `<p style="margin-bottom:12px;"><strong>${results.length} முடிவுகள் கிடைத்தன:</strong></p>`;
         results.forEach(r => {
-          html += `<p onclick="jumpToBible(${r.bookIndex}, ${r.chapter})" style="cursor:pointer; padding:6px; border-radius:6px;">
-            <strong>${r.bookName} ${r.chapter}:${r.verseNum}</strong><br>${r.text}
-          </p>`;
+          html += `<p><strong>${r.book} ${r.chapter}:${r.verseNum}</strong><br>${r.text}</p>`;
         });
         display.innerHTML = html;
       }
@@ -548,23 +558,10 @@
       loadVerses();
     }
 
-    // === TEMPORARY NAV BUTTONS ===
-    let navTimeout;
-    function showNavTemporarily() {
-      const nav = document.getElementById('bible-nav-buttons');
-      nav.classList.add('visible');
-      clearTimeout(navTimeout);
-      navTimeout = setTimeout(() => {
-        nav.classList.remove('visible');
-      }, 3000);
-    }
-
-    // === APP CORE ===
+    // === CORE APP FUNCTIONS (theme, calendar, etc.) ===
     let currentDayIndex = null;
     let currentView = 'today';
-    function isDarkMode() {
-      return document.body.classList.contains('dark-mode');
-    }
+    function isDarkMode() { return document.body.classList.contains('dark-mode'); }
     function setTheme(dark) {
       if (dark) {
         document.body.classList.add('dark-mode');
@@ -576,22 +573,13 @@
         document.getElementById('theme-toggle').innerHTML = '<i class="fas fa-moon"></i>';
       }
     }
-    function toggleTheme() {
-      setTheme(!isDarkMode());
-    }
+    function toggleTheme() { setTheme(!isDarkMode()); }
     function applySavedTheme() {
       const saved = localStorage.getItem('theme');
-      if (saved === 'dark') {
-        setTheme(true);
-      } else if (saved === 'light') {
-        setTheme(false);
-      } else {
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          setTheme(true);
-        } else {
-          setTheme(false);
-        }
-      }
+      if (saved === 'dark') setTheme(true);
+      else if (saved === 'light') setTheme(false);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme(true);
+      else setTheme(false);
     }
     function loadProgress() {
       const saved = localStorage.getItem('bibleProgress');
@@ -614,36 +602,34 @@
       const render = (id, enRefs, taRefs) => {
         document.getElementById(id).innerHTML = enRefs.map((enRef, i) => {
           const taRef = taRefs[i] || enRef;
-          const parsed = parseReference(enRef);
-          const clickAttr = parsed ? `onclick="jumpToBible(${parsed.bookIndex}, ${parsed.chapter})"` : '';
-          return `<div class="verse-item" ${clickAttr}>
-            <div class="ref-en">${enRef}</div>
-            <div class="ref-ta">${taRef}</div>
-          </div>`;
+          return `<div class="verse-item" onclick="openBibleReference('${enRef}')">
+                    <div class="ref-en">${enRef}</div>
+                    <div class="ref-ta">${taRef}</div>
+                  </div>`;
         }).join('');
       };
       render('morning-list', en.morning, ta.morning);
       render('evening-list', en.evening, ta.evening);
       currentDayIndex = dayIndex;
-      const todayDayIndex = getUTCDayOfYear(new Date());
-      const isToday = (dayIndex === todayDayIndex);
-      const todayBtn = document.getElementById('today-btn');
-      if (isToday) {
-        todayBtn.style.display = 'none';
-      } else {
-        todayBtn.style.display = 'flex';
-      }
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const currentDayOfYear = Math.floor((now - startOfYear) / 86400000);
+      const isToday = (dayIndex === currentDayOfYear && now.getFullYear() === year);
+      document.getElementById('today-btn').style.display = isToday ? 'none' : 'flex';
     }
     function goToDay(offset) {
-      const todayDayIndex = getUTCDayOfYear(new Date());
-      let target = offset === 0 ? todayDayIndex : (currentDayIndex !== null ? currentDayIndex + offset : todayDayIndex + offset);
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+      let target = offset === 0 ? dayOfYear : (currentDayIndex !== null ? currentDayIndex + offset : dayOfYear + offset);
       target = Math.max(0, Math.min(READING_PLAN_EN.length - 1, target));
       renderReadings(target);
       if (currentView !== 'today') showTab('today');
     }
     function goToToday() {
-      const todayDayIndex = getUTCDayOfYear(new Date());
-      renderReadings(Math.min(READING_PLAN_EN.length - 1, todayDayIndex));
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+      renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
       if (currentView !== 'today') showTab('today');
     }
     function markAsRead() {
@@ -659,35 +645,18 @@
     function showTab(view) {
       currentView = view;
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      const todayView = document.getElementById('today-view');
-      const calendarView = document.getElementById('calendar-view');
-      const bibleView = document.getElementById('bible-view');
-      if (view === 'today') {
-        document.querySelectorAll('.tab-btn')[0].classList.add('active');
-        todayView.style.display = 'flex';
-        calendarView.style.display = 'none';
-        bibleView.style.display = 'none';
-      } else if (view === 'calendar') {
-        document.querySelectorAll('.tab-btn')[1].classList.add('active');
-        todayView.style.display = 'none';
-        renderFullCalendar();
-        calendarView.style.display = 'block';
-        bibleView.style.display = 'none';
-      } else if (view === 'bible') {
-        document.querySelectorAll('.tab-btn')[2].classList.add('active');
-        todayView.style.display = 'none';
-        calendarView.style.display = 'none';
-        bibleView.style.display = 'block';
-      }
+      document.querySelectorAll('.tab-btn')[['today','calendar','bible'].indexOf(view)].classList.add('active');
+      document.getElementById('today-view').style.display = view === 'today' ? 'flex' : 'none';
+      document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
+      document.getElementById('bible-view').style.display = view === 'bible' ? 'block' : 'none';
+      if (view === 'calendar') renderFullCalendar();
     }
     function renderFullCalendar() {
       const container = document.getElementById('calendar-view');
       container.innerHTML = '';
       const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
       const progress = loadProgress();
-      const now = new Date();
-      const year = now.getFullYear();
-      const todayDayIndex = getUTCDayOfYear(now);
+      const year = new Date().getFullYear();
       for (let month = 0; month < 12; month++) {
         const monthDiv = document.createElement('div');
         monthDiv.style.marginBottom = '16px';
@@ -714,13 +683,14 @@
           dayEl.style.textAlign = 'center';
           grid.appendChild(dayEl);
         }
-        const isCurrentYear = (now.getFullYear() === year);
-        const isCurrentMonth = (isCurrentYear && now.getMonth() === month);
-        const todayDate = now.getDate();
+        const today = new Date();
+        const isCurrentYear = (today.getFullYear() === year);
+        const isCurrentMonth = (isCurrentYear && today.getMonth() === month);
+        const todayDate = today.getDate();
         for (let day = 1; day <= daysInMonth; day++) {
           const date = new Date(year, month, day);
-          const dayOfYear = getUTCDayOfYear(date);
-          const isToday = isCurrentMonth && day === todayDate && dayOfYear === todayDayIndex;
+          const dayOfYear = Math.floor((date - new Date(year, 0, 1)) / 86400000);
+          const isToday = isCurrentMonth && day === todayDate;
           const isCompleted = progress[dayOfYear] === true;
           const isFuture = dayOfYear >= READING_PLAN_EN.length;
           const dayEl = document.createElement('div');
@@ -776,7 +746,8 @@
         });
       }
       const en = READING_PLAN_EN[currentDayIndex];
-      const ta = READING_PLAN_TA[currentDayIndex];
+      const ta = READING_PLAN_TA[currentDayIndex].morning.map(s => s.replace(/<[^>]*>/g, ''));
+      const eveningTa = READING_PLAN_TA[currentDayIndex].evening.map(s => s.replace(/<[^>]*>/g, ''));
       const dateStr = document.getElementById('today-date').textContent;
       const card = document.createElement('div');
       card.style.cssText = `
@@ -802,14 +773,14 @@
           <div style="font-weight:600; margin-bottom:6px; color:#2c5a8c;"><i class="fas fa-sun"></i> Morning</div>
           <div style="font-size:1.05rem;">${en.morning.join(', ')}</div>
           <div style="font-size:1.05rem; font-family:'Noto Sans Tamil','Latha',sans-serif; color:#444; margin-top:3px;">
-            ${ta.morning.join(', ')}
+            ${ta.join(', ')}
           </div>
         </div>
         <div>
           <div style="font-weight:600; margin-bottom:6px; color:#2c5a8c;"><i class="fas fa-moon"></i> Evening</div>
           <div style="font-size:1.05rem;">${en.evening.join(', ')}</div>
           <div style="font-size:1.05rem; font-family:'Noto Sans Tamil','Latha',sans-serif; color:#444; margin-top:3px;">
-            ${ta.evening.join(', ')}
+            ${eveningTa.join(', ')}
           </div>
         </div>
         <div style="margin-top:16px; text-align:center; font-size:0.85rem; color:#666;">
