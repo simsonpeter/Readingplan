@@ -94,15 +94,17 @@
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
-      transition: all 0.3s ease;
+      transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       margin: 0 4px;
       opacity: 0;
+      visibility: hidden;
       pointer-events: none;
-      transform: scale(0.9);
+      transform: scale(0.8);
     }
     .title-bar.show-nav .nav-btn {
       opacity: 1;
+      visibility: visible;
       pointer-events: auto;
       transform: scale(1);
     }
@@ -1481,6 +1483,7 @@
     let navHideTimeout = null;
     let touchStartX = 0;
     let touchStartY = 0;
+    let isTouching = false;
     
     function showNavButtons() {
       const titleBar = document.querySelector('.title-bar');
@@ -1501,48 +1504,71 @@
     
     function hideNavButtons() {
       const titleBar = document.querySelector('.title-bar');
-      if (titleBar) {
+      if (titleBar && !isTouching) {
         titleBar.classList.remove('show-nav');
       }
     }
     
-    // Show on tap/touch
+    // Track touch state and show nav buttons
     document.addEventListener('touchstart', (e) => {
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-      showNavButtons();
-    }, { passive: true });
-    
-    document.addEventListener('touchend', () => {
+      isTouching = true;
+      if (e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
       showNavButtons();
     }, { passive: true });
     
     // Show on swipe (detect swipe gesture)
     document.addEventListener('touchmove', (e) => {
-      if (e.touches.length > 0) {
+      if (e.touches.length > 0 && touchStartX > 0) {
         const touchEndX = e.touches[0].clientX;
         const touchEndY = e.touches[0].clientY;
         const deltaX = Math.abs(touchEndX - touchStartX);
         const deltaY = Math.abs(touchEndY - touchStartY);
         
         // If significant movement (swipe), show nav buttons
-        if (deltaX > 20 || deltaY > 20) {
+        if (deltaX > 30 || deltaY > 30) {
           showNavButtons();
         }
       }
     }, { passive: true });
     
-    // Show on click (for desktop) and keep visible when interacting with nav buttons
-    document.addEventListener('click', () => {
+    // Show on tap/touch end - any tap on screen shows nav buttons
+    document.addEventListener('touchend', (e) => {
+      isTouching = false;
+      // Show nav buttons on any tap
       showNavButtons();
+      // Reset touch position
+      touchStartX = 0;
+      touchStartY = 0;
+    }, { passive: true });
+    
+    // Show on click (for desktop) - any click shows nav buttons
+    document.addEventListener('click', (e) => {
+      // Don't show if clicking on nav buttons themselves (they stay visible)
+      if (!e.target.closest('.nav-btn')) {
+        showNavButtons();
+      }
     }, { passive: true });
 
     // === INIT ===
     window.addEventListener('load', () => {
       applySavedTheme();
       loadAppData();
-      // Initially hide nav buttons
-      hideNavButtons();
+      // Initially hide nav buttons - ensure they start hidden
+      const titleBar = document.querySelector('.title-bar');
+      if (titleBar) {
+        titleBar.classList.remove('show-nav');
+      }
+    });
+    
+    // Also ensure hidden on DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', () => {
+      const titleBar = document.querySelector('.title-bar');
+      if (titleBar) {
+        titleBar.classList.remove('show-nav');
+      }
     });
   </script>
 </body>
