@@ -94,19 +94,27 @@
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
-      transition: all 0.2s ease;
+      transition: all 0.3s ease;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       margin: 0 4px;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.9);
+    }
+    .title-bar.show-nav .nav-btn {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
     }
     .nav-btn:hover {
       background: var(--bg);
       border-color: var(--accent);
       color: var(--accent);
-      transform: translateY(-1px);
+      transform: translateY(-1px) scale(1);
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
-    .nav-btn:active {
-      transform: translateY(0);
+    .title-bar.show-nav .nav-btn:active {
+      transform: translateY(0) scale(0.95);
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
     .dark-mode .nav-btn {
@@ -1469,10 +1477,72 @@
       }
     }
 
+    // === NAV BUTTONS SHOW/HIDE ===
+    let navHideTimeout = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    
+    function showNavButtons() {
+      const titleBar = document.querySelector('.title-bar');
+      if (titleBar) {
+        titleBar.classList.add('show-nav');
+        
+        // Clear existing timeout
+        if (navHideTimeout) {
+          clearTimeout(navHideTimeout);
+        }
+        
+        // Auto-hide after 3 seconds
+        navHideTimeout = setTimeout(() => {
+          hideNavButtons();
+        }, 3000);
+      }
+    }
+    
+    function hideNavButtons() {
+      const titleBar = document.querySelector('.title-bar');
+      if (titleBar) {
+        titleBar.classList.remove('show-nav');
+      }
+    }
+    
+    // Show on tap/touch
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      showNavButtons();
+    }, { passive: true });
+    
+    document.addEventListener('touchend', () => {
+      showNavButtons();
+    }, { passive: true });
+    
+    // Show on swipe (detect swipe gesture)
+    document.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0) {
+        const touchEndX = e.touches[0].clientX;
+        const touchEndY = e.touches[0].clientY;
+        const deltaX = Math.abs(touchEndX - touchStartX);
+        const deltaY = Math.abs(touchEndY - touchStartY);
+        
+        // If significant movement (swipe), show nav buttons
+        if (deltaX > 20 || deltaY > 20) {
+          showNavButtons();
+        }
+      }
+    }, { passive: true });
+    
+    // Show on click (for desktop) and keep visible when interacting with nav buttons
+    document.addEventListener('click', () => {
+      showNavButtons();
+    }, { passive: true });
+
     // === INIT ===
     window.addEventListener('load', () => {
       applySavedTheme();
       loadAppData();
+      // Initially hide nav buttons
+      hideNavButtons();
     });
   </script>
 </body>
