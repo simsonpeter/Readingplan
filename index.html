@@ -936,19 +936,36 @@
           console.warn('English Bible not found, using Tamil only');
         }
         
-        // Load Dutch Bible (if exists) - has different structure
+        // Load Dutch Bible - now supports both formats (new format matching Tamil/English, and old format)
         try {
+          console.log('🔄 Loading Dutch Bible...');
           const dutchBibleRes = await fetch('bibles/dutchbible.json');
+          
           if (dutchBibleRes.ok) {
             const dutchBibleData = await dutchBibleRes.json();
-            // Dutch Bible has structure: { books: [{ name, chapters: [{ verses: [{ text }] }] }] }
-            if (dutchBibleData && dutchBibleData.books && Array.isArray(dutchBibleData.books)) {
-              console.log('Parsing Dutch Bible with', dutchBibleData.books.length, 'books');
+            console.log('✅ Dutch Bible JSON parsed. Format:', Object.keys(dutchBibleData || {}));
+            
+            // New format (matching Tamil/English): { Book: [{ Chapter: [{ Verse: [{ Verse: "..." }] }] }] }
+            if (dutchBibleData.Book && Array.isArray(dutchBibleData.Book)) {
+              console.log('📖 Dutch Bible in Tamil/English format -', dutchBibleData.Book.length, 'books');
+              DUTCH_BIBLE = {
+                books: dutchBibleData.Book.map((bookObj, index) => {
+                  const name = DUTCH_BOOK_NAMES[index] || `Book ${index + 1}`;
+                  const chapters = bookObj.Chapter ? bookObj.Chapter.map(ch =>
+                    ch.Verse ? ch.Verse.map(v => v.Verse || '') : []
+                  ) : [];
+                  return { name, chapters };
+                })
+              };
+              console.log('✓ Dutch Bible loaded:', DUTCH_BIBLE.books.length, 'books');
+            }
+            // Old format: { books: [{ name, chapters: [{ verses: [{ text }] }] }] }
+            else if (dutchBibleData.books && Array.isArray(dutchBibleData.books)) {
+              console.log('📖 Dutch Bible in old format -', dutchBibleData.books.length, 'books');
               DUTCH_BIBLE = {
                 books: dutchBibleData.books.map((bookObj, index) => {
                   const name = bookObj.name || DUTCH_BOOK_NAMES[index] || `Boek ${index + 1}`;
                   const chapters = bookObj.chapters ? bookObj.chapters.map(ch => {
-                    // Sort chapters by chapter number to ensure correct order
                     return ch.verses ? ch.verses
                       .sort((a, b) => (a.verse || 0) - (b.verse || 0))
                       .map(v => v.text || '') : [];
@@ -956,15 +973,18 @@
                   return { name, chapters };
                 })
               };
-              console.log('✓ Dutch Bible loaded successfully:', DUTCH_BIBLE.books.length, 'books');
+              console.log('✓ Dutch Bible loaded:', DUTCH_BIBLE.books.length, 'books');
             } else {
-              console.warn('Dutch Bible data structure invalid - missing books array. Data keys:', Object.keys(dutchBibleData || {}));
+              console.error('❌ Dutch Bible format not recognized');
             }
           } else {
-            console.warn('Dutch Bible file not found or not accessible. Status:', dutchBibleRes.status, dutchBibleRes.statusText);
+            console.error('❌ Dutch Bible not accessible. Status:', dutchBibleRes.status);
           }
         } catch (err) {
           console.error('Error loading Dutch Bible:', err);
+          console.error('- Error name:', err.name);
+          console.error('- Error message:', err.message);
+          console.error('- Error stack:', err.stack);
         }
         
         // Set default Bible
