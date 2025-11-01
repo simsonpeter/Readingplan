@@ -2183,9 +2183,11 @@
       });
     }
     async function shareReadings() {
-      // Check if we're in Bible tab and have verses selected or viewing a chapter
-      const currentTab = document.querySelector('.tab.active')?.id;
-      if (currentTab === 'bible-tab') {
+      // Check if we're in Bible tab - use currentView variable or check active tab button
+      const bibleView = document.getElementById('bible-view');
+      const isBibleTab = bibleView && bibleView.style.display !== 'none';
+      
+      if (isBibleTab) {
         const bookSelect = document.getElementById('book-select');
         const chapterSelect = document.getElementById('chapter-select');
         
