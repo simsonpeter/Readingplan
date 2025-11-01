@@ -1310,6 +1310,9 @@
       // Save current position
       saveLastReadPosition(parseInt(bookIndex), parseInt(chapterIndex));
       
+      // Update share button visibility
+      updateShareButtonVisibility();
+      
       if (PARALLEL_MODE) {
         // Get Bibles for selected languages
         const getBibleForLang = (lang) => {
@@ -1528,57 +1531,104 @@
     
     function updateShareButtonVisibility() {
       const shareBtn = document.getElementById('share-verses-btn');
-      if (shareBtn && SELECTED_VERSES.size > 0) {
-        shareBtn.style.opacity = '1';
-        shareBtn.style.pointerEvents = 'auto';
-      } else if (shareBtn) {
-        shareBtn.style.opacity = '0.5';
-        shareBtn.style.pointerEvents = 'none';
+      // Share button is always enabled if we're viewing a chapter
+      if (shareBtn) {
+        const bookSelect = document.getElementById('book-select');
+        const chapterSelect = document.getElementById('chapter-select');
+        const hasSelection = bookSelect && bookSelect.value !== '' && chapterSelect && chapterSelect.value !== '';
+        shareBtn.style.opacity = hasSelection ? '1' : '0.5';
+        shareBtn.style.pointerEvents = hasSelection ? 'auto' : 'none';
       }
     }
     
     async function shareSelectedVerses() {
-      if (SELECTED_VERSES.size === 0) {
-        alert('Please select verses to share.');
+      const bookSelect = document.getElementById('book-select');
+      const chapterSelect = document.getElementById('chapter-select');
+      
+      if (!bookSelect || bookSelect.value === '' || !chapterSelect || chapterSelect.value === '') {
+        alert('Please select a book and chapter to share.');
         return;
       }
       
-      const bookIndex = parseInt(document.getElementById('book-select').value);
-      const chapterIndex = parseInt(document.getElementById('chapter-select').value);
+      const bookIndex = parseInt(bookSelect.value);
+      const chapterIndex = parseInt(chapterSelect.value);
+      
+      if (!CURRENT_BIBLE || !CURRENT_BIBLE.books[bookIndex]) {
+        alert('Bible not loaded. Please wait and try again.');
+        return;
+      }
+      
       const bookName = CURRENT_BIBLE.books[bookIndex].name;
       const chapterNum = chapterIndex + 1;
       
-      // Collect selected verses
+      // If verses are selected, share only those; otherwise share entire chapter
       const verses = [];
-      const sortedKeys = Array.from(SELECTED_VERSES).sort((a, b) => {
-        const [, , v1] = a.split('-').map(Number);
-        const [, , v2] = b.split('-').map(Number);
-        return v1 - v2;
-      });
       
-      for (const verseKey of sortedKeys) {
-        const [, , verseIndex] = verseKey.split('-').map(Number);
-        const verseNum = verseIndex + 1;
-        let verseText = '';
+      if (SELECTED_VERSES.size > 0) {
+        // Share selected verses only
+        const sortedKeys = Array.from(SELECTED_VERSES).sort((a, b) => {
+          const [, , v1] = a.split('-').map(Number);
+          const [, , v2] = b.split('-').map(Number);
+          return v1 - v2;
+        });
         
-        if (PARALLEL_MODE) {
-          // Get verses from both languages
-          const getBibleForLang = (lang) => {
-            if (lang === 'tamil') return TAMIL_BIBLE;
-            if (lang === 'english') return ENGLISH_BIBLE;
-            if (lang === 'dutch') return DUTCH_BIBLE;
-            return null;
-          };
-          const bible1 = getBibleForLang(PARALLEL_LANG1);
-          const bible2 = getBibleForLang(PARALLEL_LANG2);
-          const verse1 = bible1?.books[bookIndex]?.chapters[chapterIndex]?.[verseIndex] || '';
-          const verse2 = bible2?.books[bookIndex]?.chapters[chapterIndex]?.[verseIndex] || '';
-          verseText = `${verse1}\n${verse2}`;
-        } else {
-          verseText = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex][verseIndex] || '';
+        for (const verseKey of sortedKeys) {
+          const [, , verseIndex] = verseKey.split('-').map(Number);
+          const verseNum = verseIndex + 1;
+          let verseText = '';
+          
+          if (PARALLEL_MODE) {
+            // Get verses from both languages
+            const getBibleForLang = (lang) => {
+              if (lang === 'tamil') return TAMIL_BIBLE;
+              if (lang === 'english') return ENGLISH_BIBLE;
+              if (lang === 'dutch') return DUTCH_BIBLE;
+              return null;
+            };
+            const bible1 = getBibleForLang(PARALLEL_LANG1);
+            const bible2 = getBibleForLang(PARALLEL_LANG2);
+            const verse1 = bible1?.books[bookIndex]?.chapters[chapterIndex]?.[verseIndex] || '';
+            const verse2 = bible2?.books[bookIndex]?.chapters[chapterIndex]?.[verseIndex] || '';
+            verseText = `${verse1}\n${verse2}`;
+          } else {
+            verseText = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex][verseIndex] || '';
+          }
+          
+          verses.push({ verseNum, text: verseText });
+        }
+      } else {
+        // Share entire chapter
+        const chapter = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex];
+        if (!chapter || chapter.length === 0) {
+          alert('No verses found in this chapter.');
+          return;
         }
         
-        verses.push({ verseNum, text: verseText });
+        for (let i = 0; i < chapter.length; i++) {
+          const verseNum = i + 1;
+          let verseText = '';
+          
+          if (PARALLEL_MODE) {
+            // Get verses from both languages
+            const getBibleForLang = (lang) => {
+              if (lang === 'tamil') return TAMIL_BIBLE;
+              if (lang === 'english') return ENGLISH_BIBLE;
+              if (lang === 'dutch') return DUTCH_BIBLE;
+              return null;
+            };
+            const bible1 = getBibleForLang(PARALLEL_LANG1);
+            const bible2 = getBibleForLang(PARALLEL_LANG2);
+            const verse1 = bible1?.books[bookIndex]?.chapters[chapterIndex]?.[i] || '';
+            const verse2 = bible2?.books[bookIndex]?.chapters[chapterIndex]?.[i] || '';
+            verseText = `${verse1}\n${verse2}`;
+          } else {
+            verseText = chapter[i] || '';
+          }
+          
+          if (verseText.trim()) {
+            verses.push({ verseNum, text: verseText });
+          }
+        }
       }
       
       // Create share image
