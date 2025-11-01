@@ -82,14 +82,28 @@
     .nav-btn {
       background: none;
       border: none;
-      color: var(--accent);
-      font-size: 1.25rem;
-      width: 36px;
-      height: 36px;
+      color: #6c757d;
+      font-size: 1.1rem;
+      width: auto;
+      height: auto;
+      padding: 8px 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 50%;
+      border-radius: 0;
+      cursor: pointer;
+      font-weight: 600;
+      transition: color 0.2s ease;
+    }
+    .nav-btn:hover {
+      color: var(--accent);
+      opacity: 0.8;
+    }
+    .dark-mode .nav-btn {
+      color: #aaa;
+    }
+    .dark-mode .nav-btn:hover {
+      color: var(--accent);
     }
     .tabs {
       display: flex;
@@ -191,9 +205,13 @@
       display: none;
       flex: 1;
       overflow-y: auto;
-      padding: 0 8px;
+      padding: 8px;
+      padding-top: 20px; /* Add padding at top to prevent content from being hidden under sticky title/tabs */
       padding-bottom: 80px; /* Add padding to prevent content from being hidden behind bottom bar */
       position: relative;
+    }
+    #bible-view {
+      padding-top: 8px; /* Less padding for Bible view since it has its own selector row */
     }
     .selector-row {
       display: flex;
@@ -271,6 +289,25 @@
       color: var(--accent);
       font-weight: bold;
       margin-right: 6px;
+    }
+    .verse-highlighted {
+      background-color: rgba(44, 90, 140, 0.15) !important;
+      padding: 8px 12px !important;
+      border-radius: 8px !important;
+      border-left: 4px solid var(--accent) !important;
+      animation: highlightFade 0.5s ease-in;
+    }
+    @keyframes highlightFade {
+      from {
+        background-color: rgba(44, 90, 140, 0.3);
+      }
+      to {
+        background-color: rgba(44, 90, 140, 0.15);
+      }
+    }
+    .dark-mode .verse-highlighted {
+      background-color: rgba(77, 166, 255, 0.2) !important;
+      border-left-color: var(--accent) !important;
     }
     .search-result-item {
       background: var(--card);
@@ -352,20 +389,30 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      background: var(--accent);
-      color: white;
+      background: none;
+      color: #6c757d;
       border: none;
       flex: 1;
       max-width: 48%;
       padding: 12px;
-      border-radius: 8px;
+      border-radius: 0;
       font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
       min-height: 50px;
       -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+      transition: color 0.2s ease;
     }
-    .bottom-bar .share-btn { background: var(--success); }
+    .bottom-bar button:hover {
+      color: var(--accent);
+      opacity: 0.8;
+    }
+    .dark-mode .bottom-bar button {
+      color: #aaa;
+    }
+    .dark-mode .bottom-bar button:hover {
+      color: var(--accent);
+    }
     .bottom-bar button i { font-size: 1.1rem; }
     /* === FIXED NAV BUTTONS === */
     #bible-nav-buttons {
@@ -380,13 +427,25 @@
     }
     #bible-nav-buttons button {
       padding: 10px 20px;
-      background: var(--accent);
-      color: white;
+      background: none;
+      color: #6c757d;
       border: none;
-      border-radius: 24px;
+      border-radius: 0;
       font-weight: 600;
       font-size: 0.95rem;
       min-width: 80px;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    #bible-nav-buttons button:hover {
+      color: var(--accent);
+      opacity: 0.8;
+    }
+    .dark-mode #bible-nav-buttons button {
+      color: #aaa;
+    }
+    .dark-mode #bible-nav-buttons button:hover {
+      color: var(--accent);
     }
   </style>
 </head>
@@ -424,7 +483,7 @@
     </div>
     <div id="calendar-view"></div>
     <div id="bible-view">
-      <div class="selector-row" style="margin-bottom: 8px; gap: 8px;">
+      <div class="selector-row" style="margin-bottom: 8px; gap: 8px; margin-top: 8px;">
         <button id="language-toggle" onclick="toggleBibleLanguage()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;">
           <i class="fas fa-language"></i> <span id="language-text">English</span>
         </button>
@@ -543,8 +602,8 @@
       navigateToBookChapter(bookIndex, safeChapter);
     }
     
-    // Navigate to specific book and chapter by index
-    function navigateToBookChapter(bookIndex, chapterIndex) {
+    // Navigate to specific book and chapter by index, optionally scroll to verse
+    function navigateToBookChapter(bookIndex, chapterIndex, verseIndex = null) {
       if (!CURRENT_BIBLE) {
         CURRENT_BIBLE = TAMIL_BIBLE;
       }
@@ -572,15 +631,104 @@
           chapterSelect.value = safeChapter;
           loadVerses();
           
-          // Scroll to verse display
-          setTimeout(() => {
-            document.getElementById('verse-display').scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'start' 
-            });
-          }, 50);
+          // Scroll to specific verse if provided
+          if (verseIndex !== null && verseIndex !== undefined) {
+            setTimeout(() => {
+              scrollToVerse(verseIndex);
+            }, 100);
+          } else {
+            // Scroll to verse display
+            setTimeout(() => {
+              document.getElementById('verse-display').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+              });
+            }, 50);
+          }
         }, 50);
       }, 100);
+    }
+    
+    // Scroll to and highlight a specific verse
+    function scrollToVerse(verseIndex) {
+      const display = document.getElementById('verse-display');
+      const verseNum = verseIndex + 1; // verseIndex is 0-based, verseNum is 1-based
+      
+      // Remove previous highlights
+      display.querySelectorAll('.verse-highlighted').forEach(el => {
+        el.classList.remove('verse-highlighted');
+      });
+      
+      // Find the verse element (could be in regular display or parallel mode)
+      let verseElement = null;
+      
+      // Try to find in regular verse display (single language mode)
+      const verseElements = display.querySelectorAll('p');
+      verseElements.forEach(p => {
+        const verseNumEl = p.querySelector('.verse-num');
+        if (verseNumEl && parseInt(verseNumEl.textContent.trim()) === verseNum) {
+          verseElement = p;
+        }
+      });
+      
+      // If not found, try in parallel mode - look for div containing "Verse X"
+      if (!verseElement) {
+        const allDivs = display.querySelectorAll('div');
+        allDivs.forEach(div => {
+          const divText = div.textContent || '';
+          // Check if this div contains "Verse X" pattern
+          const verseMatch = divText.match(/Verse\s+(\d+)/);
+          if (verseMatch && parseInt(verseMatch[1]) === verseNum) {
+            // Check if this is the container div with the verse number header
+            const style = div.getAttribute('style') || '';
+            if (style.includes('Verse') || div.querySelector('div[style*="Verse"]')) {
+              verseElement = div;
+            }
+          }
+        });
+      }
+      
+      // Alternative: search by looking for the verse number in any text
+      if (!verseElement) {
+        const allElements = display.querySelectorAll('p, div');
+        allElements.forEach(el => {
+          const text = el.textContent || '';
+          // Look for patterns like "Verse 1", "1", or verse number at start
+          if (text.trim().startsWith(`Verse ${verseNum}`) || 
+              text.trim().startsWith(`${verseNum} `) ||
+              (el.innerHTML && el.innerHTML.includes(`Verse ${verseNum}`))) {
+            verseElement = el;
+          }
+        });
+      }
+      
+      if (verseElement) {
+        // Highlight the verse
+        verseElement.classList.add('verse-highlighted');
+        
+        // Scroll to the verse with some offset
+        setTimeout(() => {
+          verseElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }, 50);
+        
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          if (verseElement && verseElement.classList.contains('verse-highlighted')) {
+            verseElement.classList.remove('verse-highlighted');
+          }
+        }, 3000);
+      } else {
+        // Fallback: scroll to verse display
+        setTimeout(() => {
+          display.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }, 50);
+      }
     }
 
     // === LOAD EXTERNAL DATA ===
@@ -778,31 +926,45 @@
       }
       
       if (PARALLEL_MODE && TAMIL_BIBLE && ENGLISH_BIBLE) {
-        // Parallel reading mode
+        // Parallel reading mode - merged verse by verse
         const tamilChapter = TAMIL_BIBLE.books[bookIndex].chapters[chapterIndex];
         const englishChapter = ENGLISH_BIBLE.books[bookIndex].chapters[chapterIndex];
+        const maxVerses = Math.max(tamilChapter.length, englishChapter.length);
         
         let html = '';
-        
-        // Tamil panel
-        html += '<div class="verse-panel tamil">';
-        html += '<div class="panel-header">தமிழ் (Tamil)</div>';
-        tamilChapter.forEach((verseText, verseIndex) => {
-          const verseNum = verseIndex + 1;
-          html += `<p><span class="verse-num">${verseNum}</span>${verseText}</p>`;
-        });
+        html += '<div style="margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border);">';
+        html += '<div style="font-weight: 600; color: var(--accent); font-size: 1.05rem;">தமிழ் & English - Parallel Reading</div>';
         html += '</div>';
         
-        // English panel
-        html += '<div class="verse-panel english">';
-        html += '<div class="panel-header">English</div>';
-        englishChapter.forEach((verseText, verseIndex) => {
+        // Merge verses verse by verse
+        for (let verseIndex = 0; verseIndex < maxVerses; verseIndex++) {
           const verseNum = verseIndex + 1;
-          html += `<p><span class="verse-num">${verseNum}</span>${verseText}</p>`;
-        });
-        html += '</div>';
+          const tamilVerse = tamilChapter[verseIndex] || '';
+          const englishVerse = englishChapter[verseIndex] || '';
+          
+          html += `<div style="margin-bottom: 16px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px;">`;
+          html += `<div style="font-weight: 600; color: var(--accent); margin-bottom: 8px;">Verse ${verseNum}</div>`;
+          
+          // Tamil verse
+          if (tamilVerse) {
+            html += `<div style="margin-bottom: 10px; padding: 10px; background: rgba(44, 90, 140, 0.05); border-left: 3px solid var(--accent); border-radius: 4px;">`;
+            html += `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">தமிழ்</div>`;
+            html += `<div style="font-family: 'Noto Sans Tamil', 'Latha', sans-serif; font-size: 1rem; line-height: 1.6;">${tamilVerse}</div>`;
+            html += `</div>`;
+          }
+          
+          // English verse
+          if (englishVerse) {
+            html += `<div style="padding: 10px; background: rgba(76, 175, 80, 0.05); border-left: 3px solid var(--success); border-radius: 4px;">`;
+            html += `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">English</div>`;
+            html += `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 1rem; line-height: 1.6;">${englishVerse}</div>`;
+            html += `</div>`;
+          }
+          
+          html += `</div>`;
+        }
         
-        display.innerHTML = `<div class="parallel-reading">${html}</div>`;
+        display.innerHTML = html;
       } else {
         // Single language mode
         const chapter = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex];
@@ -900,7 +1062,7 @@
         const resultsMsg = CURRENT_LANGUAGE === 'tamil' ? `${results.length} முடிவுகள் கிடைத்தன` : `${results.length} results found`;
         let html = `<div class="search-results-count"><i class="fas fa-search"></i> ${resultsMsg}</div>`;
         results.forEach((r, idx) => {
-          html += `<div class="search-result-item" onclick="navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex})" role="button" tabindex="0" onkeypress="if(event.key==='Enter') navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex})">
+          html += `<div class="search-result-item" onclick="navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex}, ${r.verseNum - 1})" role="button" tabindex="0" onkeypress="if(event.key==='Enter') navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex}, ${r.verseNum - 1})">
                     <div class="search-result-header">
                       <div class="search-result-ref">
                         <i class="fas fa-book"></i>
@@ -1033,9 +1195,17 @@
       document.getElementById('bible-view').style.display = view === 'bible' ? 'block' : 'none';
       if (view === 'calendar') {
         renderFullCalendar();
-      } else if (view === 'today' && currentDayIndex !== null) {
-        // Re-render readings when switching back to today view to ensure date is visible
-        renderReadings(currentDayIndex);
+      } else if (view === 'today') {
+        // Always re-render readings when switching to today view to ensure date is visible
+        if (currentDayIndex !== null) {
+          renderReadings(currentDayIndex);
+        } else {
+          // If no current day index, calculate today's index
+          const now = new Date();
+          const startOfYear = new Date(now.getFullYear(), 0, 1);
+          const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+          renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
+        }
       }
     }
     function renderFullCalendar() {
@@ -1126,21 +1296,14 @@
       // Scroll to current month after a short delay to ensure rendering is complete
       setTimeout(() => {
         const currentMonthElement = document.getElementById(`calendar-month-${currentMonth}`);
-        if (currentMonthElement) {
-          currentMonthElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start',
-            inline: 'nearest'
-          });
-          // Add a small offset from top for better visibility
-          const calendarView = document.getElementById('calendar-view');
-          if (calendarView) {
-            setTimeout(() => {
-              calendarView.scrollTop -= 20;
-            }, 300);
-          }
+        const calendarView = document.getElementById('calendar-view');
+        if (currentMonthElement && calendarView) {
+          // Calculate position accounting for sticky header
+          const elementTop = currentMonthElement.offsetTop;
+          const scrollPosition = elementTop - 120; // Account for title bar (60px) + tabs (60px) + padding
+          calendarView.scrollTop = Math.max(0, scrollPosition);
         }
-      }, 100);
+      }, 150);
     }
     async function shareReadingsAsImage() {
       if (currentDayIndex === null) return;
