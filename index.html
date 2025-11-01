@@ -153,11 +153,19 @@
     }
     #date-card {
       padding: 16px;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #date-card .date-text {
       font-size: 1.15rem;
       font-weight: 600;
       color: var(--accent);
+      text-align: center;
+      width: 100%;
+      opacity: 1;
+      visibility: visible;
     }
     .section-title {
       font-size: 1.15rem;
@@ -376,7 +384,7 @@
   <div class="content">
     <div id="today-view">
       <div class="card" id="date-card">
-        <div class="date-text" id="today-date"></div>
+        <div class="date-text" id="today-date">Loading...</div>
       </div>
       <div class="card">
         <div class="section-title"><i class="fas fa-sun"></i> Morning</div>
