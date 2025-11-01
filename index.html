@@ -838,6 +838,11 @@
 
         document.getElementById('book-select').disabled = false;
         populateBooks();
+        // Load chapters and verses with last read position
+        setTimeout(() => {
+          loadChapters(true); // This will also load verses
+        }, 50);
+        
         // Update language toggle button visibility
         const langToggle = document.getElementById('language-toggle');
         const parallelToggle = document.getElementById('parallel-toggle');
@@ -852,7 +857,6 @@
           langToggle.style.display = 'none';
           parallelToggle.style.display = 'none';
         }
-        document.getElementById('verse-display').innerHTML = CURRENT_LANGUAGE === 'tamil' ? 'புத்தகத்தைத் தேர்ந்தெடுக்கவும்.' : 'Please select a book.';
       } catch (err) {
         console.error('Failed to load app data:', err);
         document.getElementById('verse-display').innerHTML = 'தவறு: ' + err.message;
@@ -886,21 +890,45 @@
         document.getElementById('language-text').textContent = 'English';
       }
       
-      // Update book selector and reload current selection
-      const currentBookIndex = document.getElementById('book-select').value;
+      // Load last read position for the new language
+      const lastPos = loadLastReadPosition();
       populateBooks();
-      if (currentBookIndex !== '' && currentBookIndex !== null) {
-        document.getElementById('book-select').value = currentBookIndex;
-        loadChapters();
-        const currentChapterIndex = document.getElementById('chapter-select').value;
-        if (currentChapterIndex !== '' && currentChapterIndex !== null) {
-          document.getElementById('chapter-select').value = currentChapterIndex;
-          loadVerses();
-        }
-      }
+      // populateBooks already sets the book, now ensure chapters and verses load
+      setTimeout(() => {
+        loadChapters(true); // This will load verses with last position
+      }, 50);
     }
 
     // === BIBLE UI FUNCTIONS ===
+    function saveLastReadPosition(bookIndex, chapterIndex) {
+      const position = {
+        bookIndex: bookIndex,
+        chapterIndex: chapterIndex,
+        language: CURRENT_LANGUAGE
+      };
+      localStorage.setItem('lastBiblePosition', JSON.stringify(position));
+    }
+    
+    function loadLastReadPosition() {
+      try {
+        const saved = localStorage.getItem('lastBiblePosition');
+        if (saved) {
+          const position = JSON.parse(saved);
+          // Only use saved position if language matches
+          if (position.language === CURRENT_LANGUAGE) {
+            return {
+              bookIndex: position.bookIndex || 0,
+              chapterIndex: position.chapterIndex || 0
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load last position:', err);
+      }
+      // Default to Genesis 1
+      return { bookIndex: 0, chapterIndex: 0 };
+    }
+    
     function populateBooks() {
       const select = document.getElementById('book-select');
       select.innerHTML = '';
@@ -913,9 +941,12 @@
         opt.textContent = book.name;
         select.appendChild(opt);
       });
-      loadChapters();
+      // Load last read position or default to Genesis 1
+      const lastPos = loadLastReadPosition();
+      select.value = lastPos.bookIndex;
+      loadChapters(false); // Don't auto-load verses yet
     }
-    function loadChapters() {
+    function loadChapters(autoLoadVerses = true) {
       const bookIndex = document.getElementById('book-select').value;
       const chapterSelect = document.getElementById('chapter-select');
       chapterSelect.innerHTML = '';
@@ -928,7 +959,18 @@
         chapterSelect.appendChild(opt);
       }
       chapterSelect.disabled = false;
-      loadVerses();
+      
+      // Load last read chapter or default to chapter 1
+      const lastPos = loadLastReadPosition();
+      if (lastPos.bookIndex == bookIndex) {
+        chapterSelect.value = lastPos.chapterIndex;
+      } else {
+        chapterSelect.value = 0; // Default to chapter 1
+      }
+      
+      if (autoLoadVerses) {
+        loadVerses();
+      }
     }
     function loadVerses() {
       const bookIndex = document.getElementById('book-select').value;
@@ -938,6 +980,9 @@
         display.innerHTML = CURRENT_LANGUAGE === 'tamil' ? 'அதிகாரத்தைத் தேர்ந்தெடுக்கவும்.' : 'Please select a chapter.';
         return;
       }
+      
+      // Save current position
+      saveLastReadPosition(parseInt(bookIndex), parseInt(chapterIndex));
       
       if (PARALLEL_MODE && TAMIL_BIBLE && ENGLISH_BIBLE) {
         // Parallel reading mode - merged verse by verse
@@ -1219,6 +1264,21 @@
           const startOfYear = new Date(now.getFullYear(), 0, 1);
           const dayOfYear = Math.floor((now - startOfYear) / 86400000);
           renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
+        }
+      } else if (view === 'bible') {
+        // When switching to Bible tab, ensure last read position is loaded
+        const bookSelect = document.getElementById('book-select');
+        const chapterSelect = document.getElementById('chapter-select');
+        if (bookSelect && bookSelect.value !== '' && chapterSelect && chapterSelect.value !== '') {
+          // Reload verses if already has selection
+          loadVerses();
+        } else if (CURRENT_BIBLE) {
+          // Load last position or default
+          const lastPos = loadLastReadPosition();
+          if (bookSelect) {
+            bookSelect.value = lastPos.bookIndex;
+            loadChapters(true);
+          }
         }
       }
     }
