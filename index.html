@@ -397,11 +397,16 @@
     </div>
     <div id="calendar-view"></div>
     <div id="bible-view">
+      <div class="selector-row" style="margin-bottom: 8px;">
+        <button id="language-toggle" onclick="toggleBibleLanguage()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;">
+          <i class="fas fa-language"></i> <span id="language-text">English</span>
+        </button>
+      </div>
       <div class="selector-row">
         <select id="book-select" onchange="loadChapters()" disabled><option>புத்தகம் தேர்வு செய்யப்படவில்லை</option></select>
         <select id="chapter-select" onchange="loadVerses()" disabled><option>அதிகாரம் தேர்வு செய்யப்படவில்லை</option></select>
       </div>
-      <input type="text" id="bible-search" placeholder="Search entire Bible..." oninput="searchWholeBible(this.value)">
+      <input type="text" id="bible-search" placeholder="Search in any language..." oninput="searchWholeBible(this.value)">
       <div class="verse-display" id="verse-display">
         பைபிள் ஏற்றப்படுகிறது...
       </div>
@@ -424,6 +429,9 @@
   <script>
     // === GLOBALS ===
     let TAMIL_BIBLE = null;
+    let ENGLISH_BIBLE = null;
+    let CURRENT_BIBLE = null; // Currently active Bible (TAMIL_BIBLE or ENGLISH_BIBLE)
+    let CURRENT_LANGUAGE = 'tamil'; // 'tamil' or 'english'
     let READING_PLAN_EN = [];
     let READING_PLAN_TA = [];
     let TAMIL_MAP = {};
@@ -437,10 +445,22 @@
       "எபேசியர்", "பிலிப்பியர்", "கொலோசெயர்", "1 தெசலோனிக்கேயர்", "2 தெசலோனிக்கேயர்", "1 தீமோத்தேயு", "2 தீமோத்தேயு", "தீத்து",
       "பிலேமோன்", "எபிரெயர்", "யாக்கோபு", "1 பேதுரு", "2 பேதுரு", "1 யோவான்", "2 யோவான்", "3 யோவான்", "யூதா", "வெளி"
     ];
+    const ENGLISH_BOOK_NAMES = [
+      "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth", "1 Samuel",
+      "2 Samuel", "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles", "Ezra", "Nehemiah", "Esther", "Job",
+      "Psalms", "Proverbs", "Ecclesiastes", "Song of Songs", "Isaiah", "Jeremiah", "Lamentations", "Ezekiel", "Daniel", "Hosea",
+      "Joel", "Amos", "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi",
+      "Matthew", "Mark", "Luke", "John", "Acts", "Romans", "1 Corinthians", "2 Corinthians", "Galatians",
+      "Ephesians", "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus",
+      "Philemon", "Hebrews", "James", "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"
+    ];
 
     // === CLICK HANDLER FOR REFERENCES ===
     function openBibleReference(ref) {
-      if (!TAMIL_BIBLE) {
+      if (!CURRENT_BIBLE) {
+        CURRENT_BIBLE = TAMIL_BIBLE;
+      }
+      if (!CURRENT_BIBLE) {
         alert('பைபிள் இன்னும் ஏற்றப்படவில்லை.');
         return;
       }
@@ -479,13 +499,13 @@
 
       // Find book index using BOOK_INDEX_MAP
       const bookIndex = BOOK_INDEX_MAP[bookKey];
-      if (bookIndex === undefined || bookIndex < 0 || bookIndex >= TAMIL_BIBLE.books.length) {
+      if (bookIndex === undefined || bookIndex < 0 || bookIndex >= CURRENT_BIBLE.books.length) {
         console.warn('Book not found:', bookKey);
         return;
       }
 
       // Ensure chapter number is valid (1-indexed to 0-indexed conversion)
-      const maxChap = TAMIL_BIBLE.books[bookIndex].chapters.length;
+      const maxChap = CURRENT_BIBLE.books[bookIndex].chapters.length;
       const safeChapter = Math.max(0, Math.min(chapterNum - 1, maxChap - 1));
 
       // Navigate to the book and chapter
@@ -494,13 +514,16 @@
     
     // Navigate to specific book and chapter by index
     function navigateToBookChapter(bookIndex, chapterIndex) {
-      if (bookIndex < 0 || bookIndex >= TAMIL_BIBLE.books.length) {
+      if (!CURRENT_BIBLE) {
+        CURRENT_BIBLE = TAMIL_BIBLE;
+      }
+      if (bookIndex < 0 || bookIndex >= CURRENT_BIBLE.books.length) {
         console.warn('Invalid book index:', bookIndex);
         return;
       }
       
       // Ensure chapter index is valid
-      const maxChap = TAMIL_BIBLE.books[bookIndex].chapters.length;
+      const maxChap = CURRENT_BIBLE.books[bookIndex].chapters.length;
       const safeChapter = Math.max(0, Math.min(chapterIndex, maxChap - 1));
       
       // Switch to Bible tab and load the correct book and chapter
@@ -532,7 +555,7 @@
     // === LOAD EXTERNAL DATA ===
     async function loadAppData() {
       try {
-        // Load Bible
+        // Load Tamil Bible
         const bibleRes = await fetch('bibles/tamilbible.json');
         const bibleData = await bibleRes.json();
         TAMIL_BIBLE = {
@@ -544,6 +567,29 @@
             return { name, chapters };
           })
         };
+        
+        // Load English Bible (if exists)
+        try {
+          const englishBibleRes = await fetch('bibles/englishbible.json');
+          if (englishBibleRes.ok) {
+            const englishBibleData = await englishBibleRes.json();
+            ENGLISH_BIBLE = {
+              books: englishBibleData.Book.map((bookObj, index) => {
+                const name = ENGLISH_BOOK_NAMES[index] || `Book ${index + 1}`;
+                const chapters = bookObj.Chapter ? bookObj.Chapter.map(ch =>
+                  ch.Verse ? ch.Verse.map(v => v.Verse || '') : []
+                ) : [];
+                return { name, chapters };
+              })
+            };
+          }
+        } catch (err) {
+          console.warn('English Bible not found, using Tamil only');
+        }
+        
+        // Set default Bible
+        CURRENT_BIBLE = TAMIL_BIBLE;
+        CURRENT_LANGUAGE = 'tamil';
 
         // Load Plan
         const planRes = await fetch('plan/njcplan.json');
@@ -599,7 +645,16 @@
 
         document.getElementById('book-select').disabled = false;
         populateBooks();
-        document.getElementById('verse-display').innerHTML = 'புத்தகத்தைத் தேர்ந்தெடுக்கவும்.';
+        // Update language toggle button visibility
+        const langToggle = document.getElementById('language-toggle');
+        if (ENGLISH_BIBLE) {
+          langToggle.style.display = 'flex';
+          langToggle.style.justifyContent = 'center';
+          langToggle.style.alignItems = 'center';
+        } else {
+          langToggle.style.display = 'none';
+        }
+        document.getElementById('verse-display').innerHTML = CURRENT_LANGUAGE === 'tamil' ? 'புத்தகத்தைத் தேர்ந்தெடுக்கவும்.' : 'Please select a book.';
       } catch (err) {
         console.error('Failed to load app data:', err);
         document.getElementById('verse-display').innerHTML = 'தவறு: ' + err.message;
@@ -616,11 +671,45 @@
       return ref;
     }
 
+    // === LANGUAGE TOGGLE ===
+    function toggleBibleLanguage() {
+      if (!ENGLISH_BIBLE) {
+        alert('English Bible is not available.');
+        return;
+      }
+      
+      if (CURRENT_LANGUAGE === 'tamil') {
+        CURRENT_LANGUAGE = 'english';
+        CURRENT_BIBLE = ENGLISH_BIBLE;
+        document.getElementById('language-text').textContent = 'Tamil';
+      } else {
+        CURRENT_LANGUAGE = 'tamil';
+        CURRENT_BIBLE = TAMIL_BIBLE;
+        document.getElementById('language-text').textContent = 'English';
+      }
+      
+      // Update book selector and reload current selection
+      const currentBookIndex = document.getElementById('book-select').value;
+      populateBooks();
+      if (currentBookIndex !== '' && currentBookIndex !== null) {
+        document.getElementById('book-select').value = currentBookIndex;
+        loadChapters();
+        const currentChapterIndex = document.getElementById('chapter-select').value;
+        if (currentChapterIndex !== '' && currentChapterIndex !== null) {
+          document.getElementById('chapter-select').value = currentChapterIndex;
+          loadVerses();
+        }
+      }
+    }
+
     // === BIBLE UI FUNCTIONS ===
     function populateBooks() {
       const select = document.getElementById('book-select');
       select.innerHTML = '';
-      TAMIL_BIBLE.books.forEach((book, index) => {
+      if (!CURRENT_BIBLE) {
+        CURRENT_BIBLE = TAMIL_BIBLE;
+      }
+      CURRENT_BIBLE.books.forEach((book, index) => {
         const opt = document.createElement('option');
         opt.value = index;
         opt.textContent = book.name;
@@ -632,8 +721,8 @@
       const bookIndex = document.getElementById('book-select').value;
       const chapterSelect = document.getElementById('chapter-select');
       chapterSelect.innerHTML = '';
-      if (bookIndex === '') return;
-      const book = TAMIL_BIBLE.books[bookIndex];
+      if (bookIndex === '' || !CURRENT_BIBLE) return;
+      const book = CURRENT_BIBLE.books[bookIndex];
       for (let i = 1; i <= book.chapters.length; i++) {
         const opt = document.createElement('option');
         opt.value = i - 1;
@@ -647,30 +736,63 @@
       const bookIndex = document.getElementById('book-select').value;
       const chapterIndex = document.getElementById('chapter-select').value;
       const display = document.getElementById('verse-display');
-      if (bookIndex === '' || chapterIndex === '') {
-        display.innerHTML = 'அதிகாரத்தைத் தேர்ந்தெடுக்கவும்.';
+      if (bookIndex === '' || chapterIndex === '' || !CURRENT_BIBLE) {
+        display.innerHTML = CURRENT_LANGUAGE === 'tamil' ? 'அதிகாரத்தைத் தேர்ந்தெடுக்கவும்.' : 'Please select a chapter.';
         return;
       }
-      const chapter = TAMIL_BIBLE.books[bookIndex].chapters[chapterIndex];
+      const chapter = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex];
       let html = '';
       chapter.forEach((verseText, verseIndex) => {
         const verseNum = verseIndex + 1;
         html += `<p><span class="verse-num">${verseNum}</span>${verseText}</p>`;
       });
-      display.innerHTML = html || 'வசனங்கள் கிடைக்கவில்லை.';
+      display.innerHTML = html || (CURRENT_LANGUAGE === 'tamil' ? 'வசனங்கள் கிடைக்கவில்லை.' : 'No verses found.');
     }
+    // Detect if text contains Tamil characters
+    function isTamilText(text) {
+      // Tamil Unicode range: U+0B80 to U+0BFF
+      const tamilRegex = /[\u0B80-\u0BFF]/;
+      return tamilRegex.test(text);
+    }
+    
     function searchWholeBible(query) {
-      query = query.trim().toLowerCase();
+      const originalQuery = query.trim();
+      const queryLower = originalQuery.toLowerCase();
       const display = document.getElementById('verse-display');
-      if (!TAMIL_BIBLE || !query) {
+      if (!originalQuery) {
         loadVerses();
         return;
       }
+      
+      // Auto-detect language and switch Bible if needed
+      const isTamil = isTamilText(originalQuery);
+      if (isTamil && (!ENGLISH_BIBLE || CURRENT_LANGUAGE !== 'tamil')) {
+        // Switch to Tamil Bible
+        if (TAMIL_BIBLE) {
+          CURRENT_LANGUAGE = 'tamil';
+          CURRENT_BIBLE = TAMIL_BIBLE;
+          document.getElementById('language-text').textContent = 'English';
+          populateBooks();
+        }
+      } else if (!isTamil && ENGLISH_BIBLE && CURRENT_LANGUAGE !== 'english') {
+        // Switch to English Bible
+        CURRENT_LANGUAGE = 'english';
+        CURRENT_BIBLE = ENGLISH_BIBLE;
+        document.getElementById('language-text').textContent = 'Tamil';
+        populateBooks();
+      }
+      
+      if (!CURRENT_BIBLE) {
+        display.innerHTML = CURRENT_LANGUAGE === 'tamil' ? 'பைபிள் இன்னும் ஏற்றப்படவில்லை.' : 'Bible is still loading.';
+        return;
+      }
+      
       let results = [];
-      TAMIL_BIBLE.books.forEach((book, bookIndex) => {
+      CURRENT_BIBLE.books.forEach((book, bookIndex) => {
         book.chapters.forEach((chapter, chapIndex) => {
           chapter.forEach((verseText, verseIndex) => {
-            if (verseText.toLowerCase().includes(query)) {
+            // Case-insensitive search
+            if (verseText.toLowerCase().includes(queryLower)) {
               results.push({
                 bookIndex: bookIndex,
                 book: book.name,
@@ -684,17 +806,19 @@
         });
       });
       if (results.length === 0) {
-        display.innerHTML = '<div class="search-results-count" style="color:var(--text-secondary);">தேடல் முடிவுகள் இல்லை.</div>';
+        const noResultsMsg = CURRENT_LANGUAGE === 'tamil' ? 'தேடல் முடிவுகள் இல்லை.' : 'No search results found.';
+        display.innerHTML = `<div class="search-results-count" style="color:var(--text-secondary);">${noResultsMsg}</div>`;
       } else {
-        // Highlight search query in results
-        const highlightQuery = (text, query) => {
-          const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        // Highlight search query in results (use original query for case-sensitive highlighting)
+        const highlightQuery = (text, searchQuery) => {
+          const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
           const isDark = document.body.classList.contains('dark-mode');
           const bgColor = isDark ? 'rgba(77, 166, 255, 0.3)' : 'rgba(44, 90, 140, 0.2)';
           return text.replace(regex, `<mark style="background-color:${bgColor}; padding:2px 0; border-radius:2px; font-weight:500;">$1</mark>`);
         };
         
-        let html = `<div class="search-results-count"><i class="fas fa-search"></i> ${results.length} முடிவுகள் கிடைத்தன</div>`;
+        const resultsMsg = CURRENT_LANGUAGE === 'tamil' ? `${results.length} முடிவுகள் கிடைத்தன` : `${results.length} results found`;
+        let html = `<div class="search-results-count"><i class="fas fa-search"></i> ${resultsMsg}</div>`;
         results.forEach((r, idx) => {
           html += `<div class="search-result-item" onclick="navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex})" role="button" tabindex="0" onkeypress="if(event.key==='Enter') navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex})">
                     <div class="search-result-header">
@@ -703,7 +827,7 @@
                         ${r.book} ${r.chapter}:${r.verseNum}
                       </div>
                     </div>
-                    <div class="search-result-text">${highlightQuery(r.text, query)}</div>
+                    <div class="search-result-text">${highlightQuery(r.text, originalQuery)}</div>
                   </div>`;
         });
         display.innerHTML = html;
@@ -714,19 +838,19 @@
       const chapterSelect = document.getElementById('chapter-select');
       const bookIndex = parseInt(bookSelect.value);
       const chapterIndex = parseInt(chapterSelect.value);
-      if (isNaN(bookIndex) || isNaN(chapterIndex)) return;
-      const totalChapters = TAMIL_BIBLE.books[bookIndex].chapters.length;
+      if (isNaN(bookIndex) || isNaN(chapterIndex) || !CURRENT_BIBLE) return;
+      const totalChapters = CURRENT_BIBLE.books[bookIndex].chapters.length;
       let newChapterIndex = chapterIndex + direction;
       if (newChapterIndex < 0) {
         let newBookIndex = bookIndex - 1;
         if (newBookIndex < 0) return;
         bookSelect.value = newBookIndex;
         loadChapters();
-        const newTotal = TAMIL_BIBLE.books[newBookIndex].chapters.length;
+        const newTotal = CURRENT_BIBLE.books[newBookIndex].chapters.length;
         chapterSelect.value = newTotal - 1;
       } else if (newChapterIndex >= totalChapters) {
         let newBookIndex = bookIndex + 1;
-        if (newBookIndex >= TAMIL_BIBLE.books.length) return;
+        if (newBookIndex >= CURRENT_BIBLE.books.length) return;
         bookSelect.value = newBookIndex;
         loadChapters();
         chapterSelect.value = 0;
@@ -827,7 +951,12 @@
       document.getElementById('today-view').style.display = view === 'today' ? 'flex' : 'none';
       document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
       document.getElementById('bible-view').style.display = view === 'bible' ? 'block' : 'none';
-      if (view === 'calendar') renderFullCalendar();
+      if (view === 'calendar') {
+        renderFullCalendar();
+      } else if (view === 'today' && currentDayIndex !== null) {
+        // Re-render readings when switching back to today view to ensure date is visible
+        renderReadings(currentDayIndex);
+      }
     }
     function renderFullCalendar() {
       const container = document.getElementById('calendar-view');
@@ -1026,64 +1155,94 @@
     // === TITLE BAR SHOW/HIDE ON INTERACTION ===
     let hideTitleBarTimeout = null;
     let titleBar = null;
+    let isScrolling = false;
+    let scrollDirection = 0; // -1 for up, 1 for down
     
     function showTitleBar() {
       if (!titleBar) titleBar = document.querySelector('.title-bar');
-      if (titleBar) {
+      if (titleBar && !titleBar.classList.contains('visible')) {
         titleBar.classList.add('visible');
-        // Clear existing timeout
-        if (hideTitleBarTimeout) {
-          clearTimeout(hideTitleBarTimeout);
-        }
-        // Auto-hide after 3 seconds of inactivity
-        hideTitleBarTimeout = setTimeout(() => {
-          if (titleBar) {
-            titleBar.classList.remove('visible');
-          }
-        }, 3000);
       }
+      // Clear existing timeout
+      if (hideTitleBarTimeout) {
+        clearTimeout(hideTitleBarTimeout);
+      }
+      // Auto-hide after 3 seconds of inactivity
+      hideTitleBarTimeout = setTimeout(() => {
+        if (titleBar && !isScrolling) {
+          titleBar.classList.remove('visible');
+        }
+      }, 3000);
     }
     
     function hideTitleBar() {
       if (!titleBar) titleBar = document.querySelector('.title-bar');
-      if (titleBar) {
+      if (titleBar && titleBar.classList.contains('visible')) {
         titleBar.classList.remove('visible');
       }
     }
     
-    // Show on touch
-    document.addEventListener('touchstart', showTitleBar, { passive: true });
-    document.addEventListener('touchend', showTitleBar, { passive: true });
+    // Show on touch at top of screen (first 100px)
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches[0].clientY < 100) {
+        showTitleBar();
+      }
+    }, { passive: true });
     
     // Keep visible when interacting with title bar buttons
     document.addEventListener('click', (e) => {
-      if (e.target.closest('.title-bar, .nav-btn')) {
+      if (e.target.closest('.title-bar, .nav-btn, .tabs')) {
         showTitleBar();
       }
     }, { passive: true });
     
-    // Show on scroll
+    // Show on scroll up, hide on scroll down
     let lastScrollTop = 0;
+    let scrollTimeout = null;
     document.addEventListener('scroll', () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      // Show on scroll direction change
-      if (Math.abs(scrollTop - lastScrollTop) > 5) {
-        showTitleBar();
-      }
-      lastScrollTop = scrollTop;
-    }, { passive: true });
-    
-    // Show on mouse move (for desktop)
-    let mouseMoveTimer = null;
-    document.addEventListener('mousemove', () => {
-      if (mouseMoveTimer) clearTimeout(mouseMoveTimer);
-      showTitleBar();
-      // Hide mouse cursor after 2 seconds of no movement
-      mouseMoveTimer = setTimeout(() => {
-        if (!document.querySelector(':hover')) {
+      const currentDirection = scrollTop > lastScrollTop ? 1 : -1;
+      
+      if (!isScrolling || scrollDirection !== currentDirection) {
+        isScrolling = true;
+        scrollDirection = currentDirection;
+        
+        // Show when scrolling up, hide when scrolling down (and scrolled past 50px)
+        if (scrollDirection === -1) {
+          showTitleBar();
+        } else if (scrollTop > 50) {
           hideTitleBar();
         }
-      }, 2000);
+      }
+      
+      lastScrollTop = scrollTop;
+      
+      // Reset scrolling flag after scroll stops
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        isScrolling = false;
+        if (titleBar && titleBar.classList.contains('visible')) {
+          hideTitleBarTimeout = setTimeout(() => {
+            if (titleBar && !isScrolling) {
+              titleBar.classList.remove('visible');
+            }
+          }, 2000);
+        }
+      }, 150);
+    }, { passive: true });
+    
+    // Show on mouse move near top (first 100px)
+    let mouseMoveTimer = null;
+    document.addEventListener('mousemove', (e) => {
+      if (e.clientY < 100) {
+        if (mouseMoveTimer) clearTimeout(mouseMoveTimer);
+        showTitleBar();
+        mouseMoveTimer = setTimeout(() => {
+          if (!document.querySelector(':hover')) {
+            hideTitleBar();
+          }
+        }, 2000);
+      }
     }, { passive: true });
 
     // === INIT ===
