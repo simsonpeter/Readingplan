@@ -942,7 +942,8 @@
           if (dutchBibleRes.ok) {
             const dutchBibleData = await dutchBibleRes.json();
             // Dutch Bible has structure: { books: [{ name, chapters: [{ verses: [{ text }] }] }] }
-            if (dutchBibleData.books && Array.isArray(dutchBibleData.books)) {
+            if (dutchBibleData && dutchBibleData.books && Array.isArray(dutchBibleData.books)) {
+              console.log('Parsing Dutch Bible with', dutchBibleData.books.length, 'books');
               DUTCH_BIBLE = {
                 books: dutchBibleData.books.map((bookObj, index) => {
                   const name = bookObj.name || DUTCH_BOOK_NAMES[index] || `Boek ${index + 1}`;
@@ -955,10 +956,15 @@
                   return { name, chapters };
                 })
               };
+              console.log('✓ Dutch Bible loaded successfully:', DUTCH_BIBLE.books.length, 'books');
+            } else {
+              console.warn('Dutch Bible data structure invalid - missing books array. Data keys:', Object.keys(dutchBibleData || {}));
             }
+          } else {
+            console.warn('Dutch Bible file not found or not accessible. Status:', dutchBibleRes.status, dutchBibleRes.statusText);
           }
         } catch (err) {
-          console.warn('Dutch Bible not found:', err);
+          console.error('Error loading Dutch Bible:', err);
         }
         
         // Set default Bible
@@ -1024,8 +1030,11 @@
           loadChapters(true); // This will also load verses
         }, 50);
         
-        // Update Bible language dropdown
-        updateBibleLanguageDropdown();
+        // Update Bible language dropdown after all Bibles are loaded
+        setTimeout(() => {
+          updateBibleLanguageDropdown();
+          console.log('Bibles loaded - Tamil:', !!TAMIL_BIBLE, 'English:', !!ENGLISH_BIBLE, 'Dutch:', !!DUTCH_BIBLE);
+        }, 100);
         
         // Update parallel toggle and other buttons
         const parallelToggle = document.getElementById('parallel-toggle');
@@ -1069,7 +1078,10 @@
     // === LANGUAGE SELECTION ===
     function updateBibleLanguageDropdown() {
       const select = document.getElementById('bible-language-select');
-      if (!select) return;
+      if (!select) {
+        console.warn('Bible language select element not found');
+        return;
+      }
       
       // Clear existing options
       select.innerHTML = '';
@@ -1101,6 +1113,8 @@
       
       // Show dropdown if at least one alternative language is available (always show if multiple)
       const availableCount = (TAMIL_BIBLE ? 1 : 0) + (ENGLISH_BIBLE ? 1 : 0) + (DUTCH_BIBLE ? 1 : 0);
+      console.log('Updating dropdown - Available Bibles:', { Tamil: !!TAMIL_BIBLE, English: !!ENGLISH_BIBLE, Dutch: !!DUTCH_BIBLE, Count: availableCount });
+      
       if (availableCount > 1) {
         select.style.display = 'block';
       } else {
