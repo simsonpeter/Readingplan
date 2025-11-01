@@ -65,16 +65,11 @@
       padding: 12px 16px;
       background: var(--card);
       box-shadow: 0 1px 6px rgba(0,0,0,0.1);
-      z-index: 10;
-      position: fixed;
+      z-index: 100;
+      position: sticky;
       top: 0;
       left: 0;
       right: 0;
-      transform: translateY(-100%);
-      transition: transform 0.3s ease-in-out;
-    }
-    .title-bar.visible {
-      transform: translateY(0);
     }
     .title-bar h1 {
       font-size: 1.25rem;
@@ -101,12 +96,8 @@
       background: var(--card);
       border-bottom: 1px solid var(--border);
       position: sticky;
-      top: 0;
-      z-index: 9;
-      transition: top 0.3s ease-in-out;
-    }
-    .title-bar.visible ~ .tabs {
       top: 60px;
+      z-index: 99;
     }
     .tab-btn {
       flex: 1;
@@ -239,6 +230,42 @@
       font-size: 1.1rem;
       line-height: 1.6;
       text-align: left;
+    }
+    .parallel-reading {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .parallel-reading .verse-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      font-size: 1rem;
+      line-height: 1.6;
+      text-align: left;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .parallel-reading .verse-panel.english {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .parallel-reading .verse-panel.tamil {
+      font-family: "Noto Sans Tamil", "Latha", sans-serif;
+    }
+    .parallel-reading .verse-panel .panel-header {
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+      font-size: 1.1rem;
+    }
+    @media (max-width: 768px) {
+      .parallel-reading {
+        grid-template-columns: 1fr;
+      }
     }
     .verse-display .verse-num {
       color: var(--accent);
@@ -397,9 +424,12 @@
     </div>
     <div id="calendar-view"></div>
     <div id="bible-view">
-      <div class="selector-row" style="margin-bottom: 8px;">
+      <div class="selector-row" style="margin-bottom: 8px; gap: 8px;">
         <button id="language-toggle" onclick="toggleBibleLanguage()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;">
           <i class="fas fa-language"></i> <span id="language-text">English</span>
+        </button>
+        <button id="parallel-toggle" onclick="toggleParallelReading()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;">
+          <i class="fas fa-columns"></i> <span id="parallel-text">Parallel</span>
         </button>
       </div>
       <div class="selector-row">
@@ -432,6 +462,7 @@
     let ENGLISH_BIBLE = null;
     let CURRENT_BIBLE = null; // Currently active Bible (TAMIL_BIBLE or ENGLISH_BIBLE)
     let CURRENT_LANGUAGE = 'tamil'; // 'tamil' or 'english'
+    let PARALLEL_MODE = false; // Parallel reading mode (Tamil and English side by side)
     let READING_PLAN_EN = [];
     let READING_PLAN_TA = [];
     let TAMIL_MAP = {};
@@ -647,12 +678,17 @@
         populateBooks();
         // Update language toggle button visibility
         const langToggle = document.getElementById('language-toggle');
+        const parallelToggle = document.getElementById('parallel-toggle');
         if (ENGLISH_BIBLE) {
           langToggle.style.display = 'flex';
           langToggle.style.justifyContent = 'center';
           langToggle.style.alignItems = 'center';
+          parallelToggle.style.display = 'flex';
+          parallelToggle.style.justifyContent = 'center';
+          parallelToggle.style.alignItems = 'center';
         } else {
           langToggle.style.display = 'none';
+          parallelToggle.style.display = 'none';
         }
         document.getElementById('verse-display').innerHTML = CURRENT_LANGUAGE === 'tamil' ? 'புத்தகத்தைத் தேர்ந்தெடுக்கவும்.' : 'Please select a book.';
       } catch (err) {
@@ -740,13 +776,57 @@
         display.innerHTML = CURRENT_LANGUAGE === 'tamil' ? 'அதிகாரத்தைத் தேர்ந்தெடுக்கவும்.' : 'Please select a chapter.';
         return;
       }
-      const chapter = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex];
-      let html = '';
-      chapter.forEach((verseText, verseIndex) => {
-        const verseNum = verseIndex + 1;
-        html += `<p><span class="verse-num">${verseNum}</span>${verseText}</p>`;
-      });
-      display.innerHTML = html || (CURRENT_LANGUAGE === 'tamil' ? 'வசனங்கள் கிடைக்கவில்லை.' : 'No verses found.');
+      
+      if (PARALLEL_MODE && TAMIL_BIBLE && ENGLISH_BIBLE) {
+        // Parallel reading mode
+        const tamilChapter = TAMIL_BIBLE.books[bookIndex].chapters[chapterIndex];
+        const englishChapter = ENGLISH_BIBLE.books[bookIndex].chapters[chapterIndex];
+        
+        let html = '';
+        
+        // Tamil panel
+        html += '<div class="verse-panel tamil">';
+        html += '<div class="panel-header">தமிழ் (Tamil)</div>';
+        tamilChapter.forEach((verseText, verseIndex) => {
+          const verseNum = verseIndex + 1;
+          html += `<p><span class="verse-num">${verseNum}</span>${verseText}</p>`;
+        });
+        html += '</div>';
+        
+        // English panel
+        html += '<div class="verse-panel english">';
+        html += '<div class="panel-header">English</div>';
+        englishChapter.forEach((verseText, verseIndex) => {
+          const verseNum = verseIndex + 1;
+          html += `<p><span class="verse-num">${verseNum}</span>${verseText}</p>`;
+        });
+        html += '</div>';
+        
+        display.innerHTML = `<div class="parallel-reading">${html}</div>`;
+      } else {
+        // Single language mode
+        const chapter = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex];
+        let html = '';
+        chapter.forEach((verseText, verseIndex) => {
+          const verseNum = verseIndex + 1;
+          html += `<p><span class="verse-num">${verseNum}</span>${verseText}</p>`;
+        });
+        display.innerHTML = html || (CURRENT_LANGUAGE === 'tamil' ? 'வசனங்கள் கிடைக்கவில்லை.' : 'No verses found.');
+      }
+    }
+    
+    // Toggle parallel reading mode
+    function toggleParallelReading() {
+      if (!TAMIL_BIBLE || !ENGLISH_BIBLE) {
+        alert('Both Tamil and English Bibles are required for parallel reading.');
+        return;
+      }
+      
+      PARALLEL_MODE = !PARALLEL_MODE;
+      document.getElementById('parallel-text').textContent = PARALLEL_MODE ? 'Single' : 'Parallel';
+      
+      // Reload current verses
+      loadVerses();
     }
     // Detect if text contains Tamil characters
     function isTamilText(text) {
@@ -1152,107 +1232,10 @@
       }
     }
 
-    // === TITLE BAR SHOW/HIDE ON INTERACTION ===
-    let hideTitleBarTimeout = null;
-    let titleBar = null;
-    let isScrolling = false;
-    let scrollDirection = 0; // -1 for up, 1 for down
-    
-    function showTitleBar() {
-      if (!titleBar) titleBar = document.querySelector('.title-bar');
-      if (titleBar && !titleBar.classList.contains('visible')) {
-        titleBar.classList.add('visible');
-      }
-      // Clear existing timeout
-      if (hideTitleBarTimeout) {
-        clearTimeout(hideTitleBarTimeout);
-      }
-      // Auto-hide after 3 seconds of inactivity
-      hideTitleBarTimeout = setTimeout(() => {
-        if (titleBar && !isScrolling) {
-          titleBar.classList.remove('visible');
-        }
-      }, 3000);
-    }
-    
-    function hideTitleBar() {
-      if (!titleBar) titleBar = document.querySelector('.title-bar');
-      if (titleBar && titleBar.classList.contains('visible')) {
-        titleBar.classList.remove('visible');
-      }
-    }
-    
-    // Show on touch at top of screen (first 100px)
-    document.addEventListener('touchstart', (e) => {
-      if (e.touches[0].clientY < 100) {
-        showTitleBar();
-      }
-    }, { passive: true });
-    
-    // Keep visible when interacting with title bar buttons
-    document.addEventListener('click', (e) => {
-      if (e.target.closest('.title-bar, .nav-btn, .tabs')) {
-        showTitleBar();
-      }
-    }, { passive: true });
-    
-    // Show on scroll up, hide on scroll down
-    let lastScrollTop = 0;
-    let scrollTimeout = null;
-    document.addEventListener('scroll', () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const currentDirection = scrollTop > lastScrollTop ? 1 : -1;
-      
-      if (!isScrolling || scrollDirection !== currentDirection) {
-        isScrolling = true;
-        scrollDirection = currentDirection;
-        
-        // Show when scrolling up, hide when scrolling down (and scrolled past 50px)
-        if (scrollDirection === -1) {
-          showTitleBar();
-        } else if (scrollTop > 50) {
-          hideTitleBar();
-        }
-      }
-      
-      lastScrollTop = scrollTop;
-      
-      // Reset scrolling flag after scroll stops
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        isScrolling = false;
-        if (titleBar && titleBar.classList.contains('visible')) {
-          hideTitleBarTimeout = setTimeout(() => {
-            if (titleBar && !isScrolling) {
-              titleBar.classList.remove('visible');
-            }
-          }, 2000);
-        }
-      }, 150);
-    }, { passive: true });
-    
-    // Show on mouse move near top (first 100px)
-    let mouseMoveTimer = null;
-    document.addEventListener('mousemove', (e) => {
-      if (e.clientY < 100) {
-        if (mouseMoveTimer) clearTimeout(mouseMoveTimer);
-        showTitleBar();
-        mouseMoveTimer = setTimeout(() => {
-          if (!document.querySelector(':hover')) {
-            hideTitleBar();
-          }
-        }, 2000);
-      }
-    }, { passive: true });
-
     // === INIT ===
     window.addEventListener('load', () => {
       applySavedTheme();
       loadAppData();
-      // Initially hide the title bar
-      if (titleBar) {
-        titleBar.classList.remove('visible');
-      }
     });
   </script>
 </body>
