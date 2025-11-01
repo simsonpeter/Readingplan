@@ -387,6 +387,63 @@
       background-color: rgba(77, 166, 255, 0.2) !important;
       border-left-color: var(--accent) !important;
     }
+    .verse-select-mode .verse-display p {
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .verse-select-mode .verse-display p:hover {
+      background: rgba(44, 90, 140, 0.1);
+      border-radius: 4px;
+    }
+    .verse-selected {
+      background: rgba(44, 90, 140, 0.25) !important;
+      border-left: 4px solid var(--accent) !important;
+      padding-left: 12px !important;
+      box-shadow: 0 2px 4px rgba(44, 90, 140, 0.2);
+    }
+    .verse-select-mode .verse-selected {
+      background: rgba(76, 175, 80, 0.2) !important;
+      border-left: 4px solid var(--success) !important;
+    }
+    .parallel-lang-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .parallel-lang-modal-content {
+      background: var(--card);
+      padding: 24px;
+      border-radius: 16px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .parallel-lang-selector {
+      margin: 12px 0;
+    }
+    .parallel-lang-selector label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .parallel-lang-selector select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 1rem;
+    }
     .search-result-item {
       background: var(--card);
       border: 1px solid var(--border);
@@ -568,6 +625,12 @@
         <button id="parallel-toggle" onclick="toggleParallelReading()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;">
           <i class="fas fa-columns"></i> <span id="parallel-text">Parallel</span>
         </button>
+        <button id="select-verses-btn" onclick="toggleVerseSelection()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--warning); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;">
+          <i class="fas fa-check-square"></i> <span id="select-verses-text">Select</span>
+        </button>
+        <button id="share-verses-btn" onclick="shareSelectedVerses()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; opacity: 0.5; pointer-events: none;">
+          <i class="fas fa-share"></i> Share
+        </button>
       </div>
       <div class="selector-row">
         <select id="book-select" onchange="loadChapters()" disabled><option>புத்தகம் தேர்வு செய்யப்படவில்லை</option></select>
@@ -618,9 +681,13 @@
     // === GLOBALS ===
     let TAMIL_BIBLE = null;
     let ENGLISH_BIBLE = null;
-    let CURRENT_BIBLE = null; // Currently active Bible (TAMIL_BIBLE or ENGLISH_BIBLE)
-    let CURRENT_LANGUAGE = 'tamil'; // 'tamil' or 'english'
-    let PARALLEL_MODE = false; // Parallel reading mode (Tamil and English side by side)
+    let DUTCH_BIBLE = null;
+    let CURRENT_BIBLE = null; // Currently active Bible (TAMIL_BIBLE, ENGLISH_BIBLE, or DUTCH_BIBLE)
+    let CURRENT_LANGUAGE = 'tamil'; // 'tamil', 'english', or 'dutch'
+    let PARALLEL_MODE = false; // Parallel reading mode
+    let PARALLEL_LANG1 = 'tamil'; // First language for parallel reading
+    let PARALLEL_LANG2 = 'english'; // Second language for parallel reading
+    let SELECTED_VERSES = new Set(); // Track selected verses for sharing
     let READING_PLAN_EN = [];
     let READING_PLAN_TA = [];
     let TAMIL_MAP = {};
@@ -643,6 +710,8 @@
       "Ephesians", "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus",
       "Philemon", "Hebrews", "James", "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"
     ];
+    // Dutch book names (same as English, as they use standard Bible book names)
+    const DUTCH_BOOK_NAMES = ENGLISH_BOOK_NAMES;
 
     // === CLICK HANDLER FOR REFERENCES ===
     function openBibleReference(ref) {
@@ -865,6 +934,31 @@
           console.warn('English Bible not found, using Tamil only');
         }
         
+        // Load Dutch Bible (if exists) - has different structure
+        try {
+          const dutchBibleRes = await fetch('bibles/dutchbible.json');
+          if (dutchBibleRes.ok) {
+            const dutchBibleData = await dutchBibleRes.json();
+            // Dutch Bible has structure: { books: [{ name, chapters: [{ verses: [{ text }] }] }] }
+            if (dutchBibleData.books && Array.isArray(dutchBibleData.books)) {
+              DUTCH_BIBLE = {
+                books: dutchBibleData.books.map((bookObj, index) => {
+                  const name = bookObj.name || DUTCH_BOOK_NAMES[index] || `Boek ${index + 1}`;
+                  const chapters = bookObj.chapters ? bookObj.chapters.map(ch => {
+                    // Sort chapters by chapter number to ensure correct order
+                    return ch.verses ? ch.verses
+                      .sort((a, b) => (a.verse || 0) - (b.verse || 0))
+                      .map(v => v.text || '') : [];
+                  }) : [];
+                  return { name, chapters };
+                })
+              };
+            }
+          }
+        } catch (err) {
+          console.warn('Dutch Bible not found:', err);
+        }
+        
         // Set default Bible
         CURRENT_BIBLE = TAMIL_BIBLE;
         CURRENT_LANGUAGE = 'tamil';
@@ -931,16 +1025,34 @@
         // Update language toggle button visibility
         const langToggle = document.getElementById('language-toggle');
         const parallelToggle = document.getElementById('parallel-toggle');
-        if (ENGLISH_BIBLE) {
+        const selectVersesBtn = document.getElementById('select-verses-btn');
+        const shareVersesBtn = document.getElementById('share-verses-btn');
+        
+        if (ENGLISH_BIBLE || DUTCH_BIBLE) {
           langToggle.style.display = 'flex';
           langToggle.style.justifyContent = 'center';
           langToggle.style.alignItems = 'center';
           parallelToggle.style.display = 'flex';
           parallelToggle.style.justifyContent = 'center';
           parallelToggle.style.alignItems = 'center';
+          // Update button text based on available languages
+          updateLanguageToggleText();
         } else {
           langToggle.style.display = 'none';
           parallelToggle.style.display = 'none';
+        }
+        
+        // Show select/share buttons if Bible is loaded
+        if (CURRENT_BIBLE) {
+          selectVersesBtn.style.display = 'flex';
+          selectVersesBtn.style.justifyContent = 'center';
+          selectVersesBtn.style.alignItems = 'center';
+          shareVersesBtn.style.display = 'flex';
+          shareVersesBtn.style.justifyContent = 'center';
+          shareVersesBtn.style.alignItems = 'center';
+        } else {
+          selectVersesBtn.style.display = 'none';
+          shareVersesBtn.style.display = 'none';
         }
       } catch (err) {
         console.error('Failed to load app data:', err);
@@ -959,20 +1071,69 @@
     }
 
     // === LANGUAGE TOGGLE ===
-    function toggleBibleLanguage() {
-      if (!ENGLISH_BIBLE) {
-        alert('English Bible is not available.');
-        return;
-      }
+    function updateLanguageToggleText() {
+      const langText = document.getElementById('language-text');
+      if (!langText) return;
       
+      // Show next available language
       if (CURRENT_LANGUAGE === 'tamil') {
+        if (ENGLISH_BIBLE) {
+          langText.textContent = 'English';
+        } else if (DUTCH_BIBLE) {
+          langText.textContent = 'Dutch';
+        }
+      } else if (CURRENT_LANGUAGE === 'english') {
+        if (DUTCH_BIBLE) {
+          langText.textContent = 'Dutch';
+        } else if (TAMIL_BIBLE) {
+          langText.textContent = 'Tamil';
+        }
+      } else if (CURRENT_LANGUAGE === 'dutch') {
+        if (TAMIL_BIBLE) {
+          langText.textContent = 'Tamil';
+        } else if (ENGLISH_BIBLE) {
+          langText.textContent = 'English';
+        }
+      }
+    }
+    
+    function toggleBibleLanguage() {
+      // Cycle through available languages: Tamil -> English -> Dutch -> Tamil
+      if (CURRENT_LANGUAGE === 'tamil' && ENGLISH_BIBLE) {
         CURRENT_LANGUAGE = 'english';
         CURRENT_BIBLE = ENGLISH_BIBLE;
-        document.getElementById('language-text').textContent = 'Tamil';
-      } else {
+        updateLanguageToggleText();
+      } else if (CURRENT_LANGUAGE === 'english' && DUTCH_BIBLE) {
+        CURRENT_LANGUAGE = 'dutch';
+        CURRENT_BIBLE = DUTCH_BIBLE;
+        updateLanguageToggleText();
+      } else if (CURRENT_LANGUAGE === 'dutch' && TAMIL_BIBLE) {
         CURRENT_LANGUAGE = 'tamil';
         CURRENT_BIBLE = TAMIL_BIBLE;
-        document.getElementById('language-text').textContent = 'English';
+        updateLanguageToggleText();
+      } else if (CURRENT_LANGUAGE === 'english' && !DUTCH_BIBLE && TAMIL_BIBLE) {
+        // Skip to Tamil if Dutch not available
+        CURRENT_LANGUAGE = 'tamil';
+        CURRENT_BIBLE = TAMIL_BIBLE;
+        updateLanguageToggleText();
+      } else if (CURRENT_LANGUAGE === 'tamil' && !ENGLISH_BIBLE && DUTCH_BIBLE) {
+        // Skip to Dutch if English not available
+        CURRENT_LANGUAGE = 'dutch';
+        CURRENT_BIBLE = DUTCH_BIBLE;
+        updateLanguageToggleText();
+      } else {
+        // Fallback: just switch between Tamil and available language
+        if (ENGLISH_BIBLE && CURRENT_LANGUAGE !== 'english') {
+          CURRENT_LANGUAGE = 'english';
+          CURRENT_BIBLE = ENGLISH_BIBLE;
+        } else if (DUTCH_BIBLE && CURRENT_LANGUAGE !== 'dutch') {
+          CURRENT_LANGUAGE = 'dutch';
+          CURRENT_BIBLE = DUTCH_BIBLE;
+        } else if (TAMIL_BIBLE && CURRENT_LANGUAGE !== 'tamil') {
+          CURRENT_LANGUAGE = 'tamil';
+          CURRENT_BIBLE = TAMIL_BIBLE;
+        }
+        updateLanguageToggleText();
       }
       
       // Load last read position for the new language
@@ -1069,39 +1230,72 @@
       // Save current position
       saveLastReadPosition(parseInt(bookIndex), parseInt(chapterIndex));
       
-      if (PARALLEL_MODE && TAMIL_BIBLE && ENGLISH_BIBLE) {
+      if (PARALLEL_MODE) {
+        // Get Bibles for selected languages
+        const getBibleForLang = (lang) => {
+          if (lang === 'tamil') return TAMIL_BIBLE;
+          if (lang === 'english') return ENGLISH_BIBLE;
+          if (lang === 'dutch') return DUTCH_BIBLE;
+          return null;
+        };
+        
+        const getLangName = (lang) => {
+          if (lang === 'tamil') return 'தமிழ்';
+          if (lang === 'english') return 'English';
+          if (lang === 'dutch') return 'Dutch';
+          return lang;
+        };
+        
+        const getLangFont = (lang) => {
+          if (lang === 'tamil') return "'Noto Sans Tamil', 'Latha', sans-serif";
+          return "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        };
+        
+        const bible1 = getBibleForLang(PARALLEL_LANG1);
+        const bible2 = getBibleForLang(PARALLEL_LANG2);
+        
+        if (!bible1 || !bible2) {
+          display.innerHTML = 'Both selected Bibles are required for parallel reading.';
+          return;
+        }
+        
         // Parallel reading mode - merged verse by verse
-        const tamilChapter = TAMIL_BIBLE.books[bookIndex].chapters[chapterIndex];
-        const englishChapter = ENGLISH_BIBLE.books[bookIndex].chapters[chapterIndex];
-        const maxVerses = Math.max(tamilChapter.length, englishChapter.length);
+        const chapter1 = bible1.books[bookIndex].chapters[chapterIndex];
+        const chapter2 = bible2.books[bookIndex].chapters[chapterIndex];
+        const maxVerses = Math.max(chapter1.length, chapter2.length);
         
         let html = '';
         html += '<div style="margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border);">';
-        html += '<div style="font-weight: 600; color: var(--accent); font-size: 1.05rem;">தமிழ் & English - Parallel Reading</div>';
+        html += `<div style="font-weight: 600; color: var(--accent); font-size: 1.05rem;">${getLangName(PARALLEL_LANG1)} & ${getLangName(PARALLEL_LANG2)} - Parallel Reading</div>`;
         html += '</div>';
+        
+        const isSelectMode = document.body.classList.contains('verse-select-mode');
         
         // Merge verses verse by verse
         for (let verseIndex = 0; verseIndex < maxVerses; verseIndex++) {
           const verseNum = verseIndex + 1;
-          const tamilVerse = tamilChapter[verseIndex] || '';
-          const englishVerse = englishChapter[verseIndex] || '';
+          const verse1 = chapter1[verseIndex] || '';
+          const verse2 = chapter2[verseIndex] || '';
+          const verseKey = `${bookIndex}-${chapterIndex}-${verseIndex}`;
+          const isSelected = SELECTED_VERSES.has(verseKey);
+          const selectedClass = isSelected ? 'verse-selected' : '';
           
-          html += `<div style="margin-bottom: 16px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px;">`;
+          html += `<div data-verse-key="${verseKey}" class="${selectedClass}" style="margin-bottom: 16px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; ${isSelectMode ? 'cursor:pointer;' : ''}" ${isSelectMode ? `onclick="toggleVerseSelectionByKey('${verseKey}')"` : ''}>`;
           html += `<div style="font-weight: 600; color: var(--accent); margin-bottom: 8px;">Verse ${verseNum}</div>`;
           
-          // Tamil verse
-          if (tamilVerse) {
+          // First language verse
+          if (verse1) {
             html += `<div style="margin-bottom: 10px; padding: 10px; background: rgba(44, 90, 140, 0.05); border-left: 3px solid var(--accent); border-radius: 4px;">`;
-            html += `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">தமிழ்</div>`;
-            html += `<div style="font-family: 'Noto Sans Tamil', 'Latha', sans-serif; font-size: 1rem; line-height: 1.6;">${tamilVerse}</div>`;
+            html += `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">${getLangName(PARALLEL_LANG1)}</div>`;
+            html += `<div style="font-family: ${getLangFont(PARALLEL_LANG1)}; font-size: 1rem; line-height: 1.6;">${verse1}</div>`;
             html += `</div>`;
           }
           
-          // English verse
-          if (englishVerse) {
+          // Second language verse
+          if (verse2) {
             html += `<div style="padding: 10px; background: rgba(76, 175, 80, 0.05); border-left: 3px solid var(--success); border-radius: 4px;">`;
-            html += `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">English</div>`;
-            html += `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 1rem; line-height: 1.6;">${englishVerse}</div>`;
+            html += `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">${getLangName(PARALLEL_LANG2)}</div>`;
+            html += `<div style="font-family: ${getLangFont(PARALLEL_LANG2)}; font-size: 1rem; line-height: 1.6;">${verse2}</div>`;
             html += `</div>`;
           }
           
@@ -1113,27 +1307,283 @@
         // Single language mode
         const chapter = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex];
         let html = '';
+        const isSelectMode = document.body.classList.contains('verse-select-mode');
         chapter.forEach((verseText, verseIndex) => {
           const verseNum = verseIndex + 1;
-          html += `<p><span class="verse-num">${verseNum}</span>${verseText}</p>`;
+          const verseKey = `${bookIndex}-${chapterIndex}-${verseIndex}`;
+          const isSelected = SELECTED_VERSES.has(verseKey);
+          const selectedClass = isSelected ? 'verse-selected' : '';
+          html += `<p data-verse-key="${verseKey}" class="${selectedClass}" ${isSelectMode ? 'onclick="toggleVerseSelectionByKey(\'' + verseKey + '\')"' : ''}><span class="verse-num">${verseNum}</span>${verseText}</p>`;
         });
         display.innerHTML = html || (CURRENT_LANGUAGE === 'tamil' ? 'வசனங்கள் கிடைக்கவில்லை.' : 'No verses found.');
       }
     }
     
-    // Toggle parallel reading mode
-    function toggleParallelReading() {
-      if (!TAMIL_BIBLE || !ENGLISH_BIBLE) {
-        alert('Both Tamil and English Bibles are required for parallel reading.');
+    // Show parallel language selector modal
+    function showParallelLangSelector() {
+      const modal = document.createElement('div');
+      modal.className = 'parallel-lang-modal';
+      modal.innerHTML = `
+        <div class="parallel-lang-modal-content">
+          <h3 style="margin-top:0; margin-bottom:20px; color:var(--text);">Select Languages for Parallel Reading</h3>
+          <div class="parallel-lang-selector">
+            <label>First Language:</label>
+            <select id="parallel-lang1">
+              ${TAMIL_BIBLE ? `<option value="tamil" ${PARALLEL_LANG1 === 'tamil' ? 'selected' : ''}>Tamil</option>` : ''}
+              ${ENGLISH_BIBLE ? `<option value="english" ${PARALLEL_LANG1 === 'english' ? 'selected' : ''}>English</option>` : ''}
+              ${DUTCH_BIBLE ? `<option value="dutch" ${PARALLEL_LANG1 === 'dutch' ? 'selected' : ''}>Dutch</option>` : ''}
+            </select>
+          </div>
+          <div class="parallel-lang-selector">
+            <label>Second Language:</label>
+            <select id="parallel-lang2">
+              ${TAMIL_BIBLE ? `<option value="tamil" ${PARALLEL_LANG2 === 'tamil' ? 'selected' : ''}>Tamil</option>` : ''}
+              ${ENGLISH_BIBLE ? `<option value="english" ${PARALLEL_LANG2 === 'english' ? 'selected' : ''}>English</option>` : ''}
+              ${DUTCH_BIBLE ? `<option value="dutch" ${PARALLEL_LANG2 === 'dutch' ? 'selected' : ''}>Dutch</option>` : ''}
+            </select>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:20px;">
+            <button onclick="saveParallelLanguages()" style="flex:1; padding:12px; background:var(--accent); color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">Apply</button>
+            <button onclick="closeParallelLangSelector()" style="flex:1; padding:12px; background:var(--border); color:var(--text); border:none; border-radius:8px; font-weight:600; cursor:pointer;">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      
+      // Close on background click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeParallelLangSelector();
+        }
+      });
+    }
+    
+    function closeParallelLangSelector() {
+      const modal = document.querySelector('.parallel-lang-modal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+    
+    function saveParallelLanguages() {
+      const lang1 = document.getElementById('parallel-lang1').value;
+      const lang2 = document.getElementById('parallel-lang2').value;
+      
+      if (lang1 === lang2) {
+        alert('Please select two different languages.');
         return;
       }
       
-      PARALLEL_MODE = !PARALLEL_MODE;
-      document.getElementById('parallel-text').textContent = PARALLEL_MODE ? 'Single' : 'Parallel';
+      PARALLEL_LANG1 = lang1;
+      PARALLEL_LANG2 = lang2;
+      closeParallelLangSelector();
+      
+      // Enable parallel mode if not already enabled
+      if (!PARALLEL_MODE) {
+        PARALLEL_MODE = true;
+        document.getElementById('parallel-text').textContent = 'Single';
+      }
+      
+      loadVerses();
+    }
+    
+    // Toggle parallel reading mode
+    function toggleParallelReading() {
+      if (PARALLEL_MODE) {
+        // Disable parallel mode
+        PARALLEL_MODE = false;
+        document.getElementById('parallel-text').textContent = 'Parallel';
+      } else {
+        // Show language selector to choose languages
+        showParallelLangSelector();
+        return;
+      }
       
       // Reload current verses
       loadVerses();
     }
+    
+    // Verse selection functions
+    let VERSE_SELECT_MODE = false;
+    
+    function toggleVerseSelection() {
+      VERSE_SELECT_MODE = !VERSE_SELECT_MODE;
+      document.body.classList.toggle('verse-select-mode', VERSE_SELECT_MODE);
+      const selectText = document.getElementById('select-verses-text');
+      if (selectText) {
+        selectText.textContent = VERSE_SELECT_MODE ? 'Cancel' : 'Select';
+      }
+      
+      if (!VERSE_SELECT_MODE) {
+        // Clear selection when exiting select mode
+        SELECTED_VERSES.clear();
+      }
+      
+      // Reload verses to update click handlers
+      loadVerses();
+    }
+    
+    function toggleVerseSelectionByKey(verseKey) {
+      if (!VERSE_SELECT_MODE) return;
+      
+      if (SELECTED_VERSES.has(verseKey)) {
+        SELECTED_VERSES.delete(verseKey);
+      } else {
+        SELECTED_VERSES.add(verseKey);
+      }
+      
+      // Update UI
+      const verseElement = document.querySelector(`[data-verse-key="${verseKey}"]`);
+      if (verseElement) {
+        if (SELECTED_VERSES.has(verseKey)) {
+          verseElement.classList.add('verse-selected');
+        } else {
+          verseElement.classList.remove('verse-selected');
+        }
+      }
+      
+      // Update share button visibility
+      updateShareButtonVisibility();
+    }
+    
+    function updateShareButtonVisibility() {
+      const shareBtn = document.getElementById('share-verses-btn');
+      if (shareBtn && SELECTED_VERSES.size > 0) {
+        shareBtn.style.opacity = '1';
+        shareBtn.style.pointerEvents = 'auto';
+      } else if (shareBtn) {
+        shareBtn.style.opacity = '0.5';
+        shareBtn.style.pointerEvents = 'none';
+      }
+    }
+    
+    async function shareSelectedVerses() {
+      if (SELECTED_VERSES.size === 0) {
+        alert('Please select verses to share.');
+        return;
+      }
+      
+      const bookIndex = parseInt(document.getElementById('book-select').value);
+      const chapterIndex = parseInt(document.getElementById('chapter-select').value);
+      const bookName = CURRENT_BIBLE.books[bookIndex].name;
+      const chapterNum = chapterIndex + 1;
+      
+      // Collect selected verses
+      const verses = [];
+      const sortedKeys = Array.from(SELECTED_VERSES).sort((a, b) => {
+        const [, , v1] = a.split('-').map(Number);
+        const [, , v2] = b.split('-').map(Number);
+        return v1 - v2;
+      });
+      
+      for (const verseKey of sortedKeys) {
+        const [, , verseIndex] = verseKey.split('-').map(Number);
+        const verseNum = verseIndex + 1;
+        let verseText = '';
+        
+        if (PARALLEL_MODE) {
+          // Get verses from both languages
+          const getBibleForLang = (lang) => {
+            if (lang === 'tamil') return TAMIL_BIBLE;
+            if (lang === 'english') return ENGLISH_BIBLE;
+            if (lang === 'dutch') return DUTCH_BIBLE;
+            return null;
+          };
+          const bible1 = getBibleForLang(PARALLEL_LANG1);
+          const bible2 = getBibleForLang(PARALLEL_LANG2);
+          const verse1 = bible1?.books[bookIndex]?.chapters[chapterIndex]?.[verseIndex] || '';
+          const verse2 = bible2?.books[bookIndex]?.chapters[chapterIndex]?.[verseIndex] || '';
+          verseText = `${verse1}\n${verse2}`;
+        } else {
+          verseText = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex][verseIndex] || '';
+        }
+        
+        verses.push({ verseNum, text: verseText });
+      }
+      
+      // Create share image
+      await shareVersesAsImage(bookName, chapterNum, verses);
+    }
+    
+    async function shareVersesAsImage(bookName, chapterNum, verses) {
+      if (!window.html2canvas) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+      
+      const card = document.createElement('div');
+      card.style.cssText = `
+        position: fixed;
+        left: -9999px;
+        top: -9999px;
+        width: 400px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 30px;
+        border-radius: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #fff;
+        line-height: 1.6;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      `;
+      
+      let versesHtml = '';
+      verses.forEach(v => {
+        versesHtml += `<div style="margin-bottom: 16px; padding: 16px; background: rgba(255,255,255,0.15); border-radius:12px; backdrop-filter:blur(10px);">
+          <div style="font-weight:600; margin-bottom:8px; color:#ffd700;">Verse ${v.verseNum}</div>
+          <div style="font-size:1.1rem; text-align:center; line-height:1.6;">${v.text}</div>
+        </div>`;
+      });
+      
+      card.innerHTML = `
+        <div style="text-align:center; margin-bottom:24px;">
+          <div style="font-size:2.5rem; color:#ffd700; margin-bottom:8px;">
+            <i class="fas fa-book-open"></i>
+          </div>
+          <div style="font-size:1.3rem; font-weight:700; margin-bottom:4px;">${bookName}</div>
+          <div style="font-size:1rem; opacity:0.9;">Chapter ${chapterNum}</div>
+        </div>
+        ${versesHtml}
+        <div style="margin-top:20px; text-align:center; font-size:0.85rem; opacity:0.8;">
+          — New Jerusalem Church
+        </div>
+      `;
+      
+      document.body.appendChild(card);
+      const canvas = await html2canvas(card, {
+        scale: 2,
+        backgroundColor: null,
+        logging: false
+      });
+      document.body.removeChild(card);
+      
+      const blob = await new Promise((resolve) => {
+        canvas.toBlob(blob => resolve(blob), 'image/png');
+      });
+      
+      const file = new File([blob], `Bible_${bookName}_${chapterNum}.png`, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `${bookName} ${chapterNum}`,
+          text: '📖 Selected Bible verses',
+          files: [file]
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Bible_${bookName}_${chapterNum}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    }
+    
     // Detect if text contains Tamil characters
     function isTamilText(text) {
       // Tamil Unicode range: U+0B80 to U+0BFF
@@ -1201,25 +1651,46 @@
       
       // Auto-detect language and switch Bible if needed
       const isTamil = isTamilText(originalQuery);
-      if (isTamil && (!ENGLISH_BIBLE || CURRENT_LANGUAGE !== 'tamil')) {
+      if (isTamil && CURRENT_LANGUAGE !== 'tamil') {
         // Switch to Tamil Bible
         if (TAMIL_BIBLE) {
           CURRENT_LANGUAGE = 'tamil';
           CURRENT_BIBLE = TAMIL_BIBLE;
-          document.getElementById('language-text').textContent = 'English';
+          updateLanguageToggleText();
           populateBooks();
         }
-      } else if (!isTamil && ENGLISH_BIBLE && CURRENT_LANGUAGE !== 'english') {
-        // Switch to English Bible
-        CURRENT_LANGUAGE = 'english';
-        CURRENT_BIBLE = ENGLISH_BIBLE;
-        document.getElementById('language-text').textContent = 'Tamil';
-        populateBooks();
+      } else if (!isTamil) {
+        // For non-Tamil, prefer English if available, otherwise Dutch
+        // Simple heuristic: if user types common English words, use English; otherwise could be Dutch
+        const commonEnglishWords = /\b(the|and|is|in|to|of|a|that|it|with|for|as|was|on|are)\b/i;
+        const isLikelyEnglish = commonEnglishWords.test(originalQuery);
+        
+        if (isLikelyEnglish && ENGLISH_BIBLE && CURRENT_LANGUAGE !== 'english') {
+          CURRENT_LANGUAGE = 'english';
+          CURRENT_BIBLE = ENGLISH_BIBLE;
+          updateLanguageToggleText();
+          populateBooks();
+        } else if (!isLikelyEnglish && DUTCH_BIBLE && CURRENT_LANGUAGE !== 'dutch') {
+          // Try Dutch if not clearly English
+          CURRENT_LANGUAGE = 'dutch';
+          CURRENT_BIBLE = DUTCH_BIBLE;
+          updateLanguageToggleText();
+          populateBooks();
+        } else if (ENGLISH_BIBLE && CURRENT_LANGUAGE !== 'english') {
+          // Fallback to English
+          CURRENT_LANGUAGE = 'english';
+          CURRENT_BIBLE = ENGLISH_BIBLE;
+          updateLanguageToggleText();
+          populateBooks();
+        }
       }
       
       if (!CURRENT_BIBLE) {
         loadingEl.style.display = 'none';
-        display.innerHTML = CURRENT_LANGUAGE === 'tamil' ? 'பைபிள் இன்னும் ஏற்றப்படவில்லை.' : 'Bible is still loading.';
+        const loadingMsg = CURRENT_LANGUAGE === 'tamil' ? 'பைபிள் இன்னும் ஏற்றப்படவில்லை.' 
+          : CURRENT_LANGUAGE === 'dutch' ? 'Bijbel wordt nog geladen.' 
+          : 'Bible is still loading.';
+        display.innerHTML = loadingMsg;
         return;
       }
       
@@ -1287,7 +1758,9 @@
       const display = document.getElementById('verse-display');
       
       if (results.length === 0) {
-        const noResultsMsg = CURRENT_LANGUAGE === 'tamil' ? 'தேடல் முடிவுகள் இல்லை.' : 'No search results found.';
+        const noResultsMsg = CURRENT_LANGUAGE === 'tamil' ? 'தேடல் முடிவுகள் இல்லை.' 
+          : CURRENT_LANGUAGE === 'dutch' ? 'Geen zoekresultaten gevonden.' 
+          : 'No search results found.';
         display.innerHTML = `<div class="search-results-count" style="color:var(--text-secondary);">${noResultsMsg}</div>`;
         return;
       }
@@ -1302,6 +1775,8 @@
       
       const resultsMsg = CURRENT_LANGUAGE === 'tamil' 
         ? `${results.length} முடிவுகள் கிடைத்தன` 
+        : CURRENT_LANGUAGE === 'dutch'
+        ? `${results.length} resultaten gevonden`
         : `${results.length} results found`;
       
       let html = `<div class="search-results-count"><i class="fas fa-search"></i> ${resultsMsg}</div>`;
@@ -1588,43 +2063,53 @@
         position: fixed;
         left: -9999px;
         top: -9999px;
-        width: 320px;
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
+        width: 380px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 30px;
+        border-radius: 20px;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        color: #222;
-        line-height: 1.4;
-        border: 1px solid #e0e0e0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        color: #fff;
+        line-height: 1.6;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
       `;
       card.innerHTML = `
-        <div style="text-align:center; margin-bottom:12px; color:#2c5a8c; font-weight:600;">
-          <i class="fas fa-book-open"></i> One Year Bible<br>
-          <span style="font-size:0.9rem; color:#555;">${dateStr}</span>
+        <div style="text-align:center; margin-bottom:20px;">
+          <div style="font-size:2.5rem; color:#ffd700; margin-bottom:8px;">
+            <i class="fas fa-book-open"></i>
+          </div>
+          <div style="font-size:1.2rem; font-weight:700; margin-bottom:4px;">One Year Bible</div>
+          <div style="font-size:0.95rem; opacity:0.9;">${dateStr}</div>
         </div>
-        <div style="margin-bottom:14px;">
-          <div style="font-weight:600; margin-bottom:6px; color:#2c5a8c;"><i class="fas fa-sun"></i> Morning</div>
-          <div style="font-size:1.05rem;">${en.morning.join(', ')}</div>
-          <div style="font-size:1.05rem; font-family:'Noto Sans Tamil','Latha',sans-serif; color:#444; margin-top:3px;">
+        <div style="margin-bottom:24px; background:rgba(255,255,255,0.15); border-radius:12px; padding:20px; backdrop-filter:blur(10px);">
+          <div style="text-align:center; margin-bottom:12px;">
+            <i class="fas fa-sun" style="font-size:3rem; color:#ffd700; text-shadow: 0 2px 8px rgba(255,215,0,0.5);"></i>
+          </div>
+          <div style="text-align:center; font-size:1.15rem; font-weight:500; margin-bottom:8px;">
+            ${en.morning.join(', ')}
+          </div>
+          <div style="text-align:center; font-size:1.1rem; font-family:'Noto Sans Tamil','Latha',sans-serif; opacity:0.95; line-height:1.5;">
             ${ta.join(', ')}
           </div>
         </div>
-        <div>
-          <div style="font-weight:600; margin-bottom:6px; color:#2c5a8c;"><i class="fas fa-moon"></i> Evening</div>
-          <div style="font-size:1.05rem;">${en.evening.join(', ')}</div>
-          <div style="font-size:1.05rem; font-family:'Noto Sans Tamil','Latha',sans-serif; color:#444; margin-top:3px;">
+        <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:20px; backdrop-filter:blur(10px);">
+          <div style="text-align:center; margin-bottom:12px;">
+            <i class="fas fa-moon" style="font-size:3rem; color:#e0e7ff; text-shadow: 0 2px 8px rgba(224,231,255,0.5);"></i>
+          </div>
+          <div style="text-align:center; font-size:1.15rem; font-weight:500; margin-bottom:8px;">
+            ${en.evening.join(', ')}
+          </div>
+          <div style="text-align:center; font-size:1.1rem; font-family:'Noto Sans Tamil','Latha',sans-serif; opacity:0.95; line-height:1.5;">
             ${eveningTa.join(', ')}
           </div>
         </div>
-        <div style="margin-top:16px; text-align:center; font-size:0.85rem; color:#666;">
+        <div style="margin-top:20px; text-align:center; font-size:0.85rem; opacity:0.8;">
           — New Jerusalem Church
         </div>
       `;
       document.body.appendChild(card);
       const canvas = await html2canvas(card, {
         scale: 2,
-        backgroundColor: '#ffffff',
+        backgroundColor: null,
         logging: false
       });
       document.body.removeChild(card);
