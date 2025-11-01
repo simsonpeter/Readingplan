@@ -251,16 +251,70 @@
       color: var(--text);
       font-size: 0.95rem;
     }
+    .search-container {
+      margin: 8px 0;
+    }
+    .search-input-wrapper {
+      position: relative;
+      width: 100%;
+    }
     #bible-search {
       width: 100%;
-      padding: 8px;
-      margin: 8px 0;
+      padding: 8px 35px 8px 8px;
+      margin: 0 0 8px 0;
       border: 1px solid var(--border);
       border-radius: 6px;
       background: var(--card);
       color: var(--text);
       font-size: 0.95rem;
       display: block;
+      box-sizing: border-box;
+    }
+    .search-loading {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      pointer-events: none;
+    }
+    .search-filters {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .search-filter-btn {
+      flex: 1;
+      min-width: 80px;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .search-filter-btn:hover {
+      background: var(--card);
+      border-color: var(--accent);
+    }
+    .search-filter-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    @media (max-width: 480px) {
+      .search-filter-btn {
+        font-size: 0.75rem;
+        padding: 5px 8px;
+        min-width: 60px;
+      }
     }
     .verse-display {
       background: var(--card);
@@ -519,7 +573,28 @@
         <select id="book-select" onchange="loadChapters()" disabled><option>புத்தகம் தேர்வு செய்யப்படவில்லை</option></select>
         <select id="chapter-select" onchange="loadVerses()" disabled><option>அதிகாரம் தேர்வு செய்யப்படவில்லை</option></select>
       </div>
-      <input type="text" id="bible-search" placeholder="Search in any language..." oninput="searchWholeBible(this.value)">
+      <div class="search-container">
+        <div class="search-input-wrapper">
+          <input type="text" id="bible-search" placeholder="Search in any language..." oninput="onSearchInput(this.value)">
+          <div id="search-loading" class="search-loading" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i>
+          </div>
+        </div>
+        <div class="search-filters">
+          <button class="search-filter-btn active" data-filter="all" onclick="setSearchFilter('all')">
+            <i class="fas fa-book-open"></i> Whole Bible
+          </button>
+          <button class="search-filter-btn" data-filter="ot" onclick="setSearchFilter('ot')">
+            <i class="fas fa-scroll"></i> OT
+          </button>
+          <button class="search-filter-btn" data-filter="nt" onclick="setSearchFilter('nt')">
+            <i class="fas fa-book"></i> NT
+          </button>
+          <button class="search-filter-btn" data-filter="book" onclick="setSearchFilter('book')">
+            <i class="fas fa-bookmark"></i> This Book
+          </button>
+        </div>
+      </div>
       <div class="verse-display" id="verse-display">
         பைபிள் ஏற்றப்படுகிறது...
       </div>
@@ -1066,11 +1141,60 @@
       return tamilRegex.test(text);
     }
     
-    function searchWholeBible(query) {
+    // Search state
+    let searchFilter = 'all'; // 'all', 'ot', 'nt', 'book'
+    let searchTimeout = null;
+    const OLD_TESTAMENT_END = 38; // Malachi (0-indexed: 39 books, indices 0-38)
+    const NEW_TESTAMENT_START = 39; // Matthew (0-indexed)
+    
+    function setSearchFilter(filter) {
+      searchFilter = filter;
+      // Update button states
+      document.querySelectorAll('.search-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`.search-filter-btn[data-filter="${filter}"]`).classList.add('active');
+      
+      // Re-run search if there's a query
+      const searchInput = document.getElementById('bible-search');
+      if (searchInput && searchInput.value.trim()) {
+        performSearch(searchInput.value);
+      }
+    }
+    
+    function onSearchInput(query) {
+      const display = document.getElementById('verse-display');
+      const loadingEl = document.getElementById('search-loading');
+      
+      // Show loading immediately
+      if (query.trim()) {
+        loadingEl.style.display = 'block';
+      }
+      
+      // Clear existing timeout
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+      
+      // Debounce: wait 300ms after user stops typing
+      searchTimeout = setTimeout(() => {
+        if (!query.trim()) {
+          loadingEl.style.display = 'none';
+          loadVerses();
+          return;
+        }
+        performSearch(query);
+      }, 300);
+    }
+    
+    function performSearch(query) {
       const originalQuery = query.trim();
       const queryLower = originalQuery.toLowerCase();
       const display = document.getElementById('verse-display');
+      const loadingEl = document.getElementById('search-loading');
+      
       if (!originalQuery) {
+        loadingEl.style.display = 'none';
         loadVerses();
         return;
       }
@@ -1094,14 +1218,51 @@
       }
       
       if (!CURRENT_BIBLE) {
+        loadingEl.style.display = 'none';
         display.innerHTML = CURRENT_LANGUAGE === 'tamil' ? 'பைபிள் இன்னும் ஏற்றப்படவில்லை.' : 'Bible is still loading.';
         return;
       }
       
+      // Determine search range based on filter
+      let startBookIndex = 0;
+      let endBookIndex = CURRENT_BIBLE.books.length - 1;
+      
+      if (searchFilter === 'ot') {
+        startBookIndex = 0;
+        endBookIndex = OLD_TESTAMENT_END;
+      } else if (searchFilter === 'nt') {
+        startBookIndex = NEW_TESTAMENT_START;
+        endBookIndex = CURRENT_BIBLE.books.length - 1;
+      } else if (searchFilter === 'book') {
+        const bookSelect = document.getElementById('book-select');
+        const selectedBookIndex = parseInt(bookSelect.value);
+        if (selectedBookIndex >= 0 && selectedBookIndex < CURRENT_BIBLE.books.length) {
+          startBookIndex = selectedBookIndex;
+          endBookIndex = selectedBookIndex;
+        }
+      }
+      
+      // Perform search - optimized for performance
       let results = [];
-      CURRENT_BIBLE.books.forEach((book, bookIndex) => {
+      const maxResults = 500; // Limit results for performance
+      
+      // Search with timeout for large searches
+      const searchStartTime = Date.now();
+      const maxSearchTime = 2000; // Max 2 seconds
+      
+      for (let bookIndex = startBookIndex; bookIndex <= endBookIndex && results.length < maxResults; bookIndex++) {
+        // Check timeout for very large searches
+        if (Date.now() - searchStartTime > maxSearchTime && results.length > 0) {
+          break; // Stop if taking too long but we have some results
+        }
+        
+        const book = CURRENT_BIBLE.books[bookIndex];
+        if (!book) continue;
+        
         book.chapters.forEach((chapter, chapIndex) => {
+          if (results.length >= maxResults) return;
           chapter.forEach((verseText, verseIndex) => {
+            if (results.length >= maxResults) return;
             // Case-insensitive search
             if (verseText.toLowerCase().includes(queryLower)) {
               results.push({
@@ -1115,34 +1276,52 @@
             }
           });
         });
-      });
+      }
+      
+      // Search complete
+      loadingEl.style.display = 'none';
+      renderSearchResults(results, originalQuery);
+    }
+    
+    function renderSearchResults(results, originalQuery) {
+      const display = document.getElementById('verse-display');
+      
       if (results.length === 0) {
         const noResultsMsg = CURRENT_LANGUAGE === 'tamil' ? 'தேடல் முடிவுகள் இல்லை.' : 'No search results found.';
         display.innerHTML = `<div class="search-results-count" style="color:var(--text-secondary);">${noResultsMsg}</div>`;
-      } else {
-        // Highlight search query in results (use original query for case-sensitive highlighting)
-        const highlightQuery = (text, searchQuery) => {
-          const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-          const isDark = document.body.classList.contains('dark-mode');
-          const bgColor = isDark ? 'rgba(77, 166, 255, 0.3)' : 'rgba(44, 90, 140, 0.2)';
-          return text.replace(regex, `<mark style="background-color:${bgColor}; padding:2px 0; border-radius:2px; font-weight:500;">$1</mark>`);
-        };
-        
-        const resultsMsg = CURRENT_LANGUAGE === 'tamil' ? `${results.length} முடிவுகள் கிடைத்தன` : `${results.length} results found`;
-        let html = `<div class="search-results-count"><i class="fas fa-search"></i> ${resultsMsg}</div>`;
-        results.forEach((r, idx) => {
-          html += `<div class="search-result-item" onclick="navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex}, ${r.verseNum - 1})" role="button" tabindex="0" onkeypress="if(event.key==='Enter') navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex}, ${r.verseNum - 1})">
-                    <div class="search-result-header">
-                      <div class="search-result-ref">
-                        <i class="fas fa-book"></i>
-                        ${r.book} ${r.chapter}:${r.verseNum}
-                      </div>
-                    </div>
-                    <div class="search-result-text">${highlightQuery(r.text, originalQuery)}</div>
-                  </div>`;
-        });
-        display.innerHTML = html;
+        return;
       }
+      
+      // Highlight search query in results
+      const highlightQuery = (text, searchQuery) => {
+        const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        const isDark = document.body.classList.contains('dark-mode');
+        const bgColor = isDark ? 'rgba(77, 166, 255, 0.3)' : 'rgba(44, 90, 140, 0.2)';
+        return text.replace(regex, `<mark style="background-color:${bgColor}; padding:2px 0; border-radius:2px; font-weight:500;">$1</mark>`);
+      };
+      
+      const resultsMsg = CURRENT_LANGUAGE === 'tamil' 
+        ? `${results.length} முடிவுகள் கிடைத்தன` 
+        : `${results.length} results found`;
+      
+      let html = `<div class="search-results-count"><i class="fas fa-search"></i> ${resultsMsg}</div>`;
+      results.forEach((r, idx) => {
+        html += `<div class="search-result-item" onclick="navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex}, ${r.verseNum - 1})" role="button" tabindex="0" onkeypress="if(event.key==='Enter') navigateToBookChapter(${r.bookIndex}, ${r.chapterIndex}, ${r.verseNum - 1})">
+                  <div class="search-result-header">
+                    <div class="search-result-ref">
+                      <i class="fas fa-book"></i>
+                      ${r.book} ${r.chapter}:${r.verseNum}
+                    </div>
+                  </div>
+                  <div class="search-result-text">${highlightQuery(r.text, originalQuery)}</div>
+                </div>`;
+      });
+      display.innerHTML = html;
+    }
+    
+    // Keep the old function name for backward compatibility
+    function searchWholeBible(query) {
+      onSearchInput(query);
     }
     function navigateChapter(direction) {
       const bookSelect = document.getElementById('book-select');
