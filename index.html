@@ -387,24 +387,20 @@
       background-color: rgba(77, 166, 255, 0.2) !important;
       border-left-color: var(--accent) !important;
     }
-    .verse-select-mode .verse-display p {
+    .verse-display p {
       cursor: pointer;
       user-select: none;
       transition: all 0.2s ease;
     }
-    .verse-select-mode .verse-display p:hover {
+    .verse-display p:hover {
       background: rgba(44, 90, 140, 0.1);
       border-radius: 4px;
     }
     .verse-selected {
-      background: rgba(44, 90, 140, 0.25) !important;
-      border-left: 4px solid var(--accent) !important;
-      padding-left: 12px !important;
-      box-shadow: 0 2px 4px rgba(44, 90, 140, 0.2);
-    }
-    .verse-select-mode .verse-selected {
       background: rgba(76, 175, 80, 0.2) !important;
       border-left: 4px solid var(--success) !important;
+      padding-left: 12px !important;
+      box-shadow: 0 2px 4px rgba(44, 90, 140, 0.2);
     }
     .parallel-lang-modal {
       position: fixed;
@@ -626,12 +622,6 @@
         </select>
         <button id="parallel-toggle" onclick="toggleParallelReading()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;">
           <i class="fas fa-columns"></i> <span id="parallel-text">Parallel</span>
-        </button>
-        <button id="select-verses-btn" onclick="toggleVerseSelection()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--warning); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;">
-          <i class="fas fa-check-square"></i> <span id="select-verses-text">Select</span>
-        </button>
-        <button id="share-verses-btn" onclick="shareSelectedVerses()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; opacity: 0.5; pointer-events: none;">
-          <i class="fas fa-share"></i> Share
         </button>
       </div>
       <div class="selector-row">
@@ -1113,26 +1103,10 @@
         
         // Update parallel toggle and other buttons
         const parallelToggle = document.getElementById('parallel-toggle');
-        const selectVersesBtn = document.getElementById('select-verses-btn');
-        const shareVersesBtn = document.getElementById('share-verses-btn');
-        
         if (ENGLISH_BIBLE || DUTCH_BIBLE || TAMIL_BIBLE) {
           parallelToggle.style.display = 'flex';
           parallelToggle.style.justifyContent = 'center';
           parallelToggle.style.alignItems = 'center';
-        }
-        
-        // Show select/share buttons if Bible is loaded
-        if (CURRENT_BIBLE) {
-          selectVersesBtn.style.display = 'flex';
-          selectVersesBtn.style.justifyContent = 'center';
-          selectVersesBtn.style.alignItems = 'center';
-          shareVersesBtn.style.display = 'flex';
-          shareVersesBtn.style.justifyContent = 'center';
-          shareVersesBtn.style.alignItems = 'center';
-        } else {
-          selectVersesBtn.style.display = 'none';
-          shareVersesBtn.style.display = 'none';
         }
       } catch (err) {
         console.error('Failed to load app data:', err);
@@ -1310,9 +1284,6 @@
       // Save current position
       saveLastReadPosition(parseInt(bookIndex), parseInt(chapterIndex));
       
-      // Update share button visibility
-      updateShareButtonVisibility();
-      
       if (PARALLEL_MODE) {
         // Get Bibles for selected languages
         const getBibleForLang = (lang) => {
@@ -1352,7 +1323,6 @@
         html += `<div style="font-weight: 600; color: var(--accent); font-size: 1.05rem;">${getLangName(PARALLEL_LANG1)} & ${getLangName(PARALLEL_LANG2)} - Parallel Reading</div>`;
         html += '</div>';
         
-        const isSelectMode = document.body.classList.contains('verse-select-mode');
         
         // Merge verses verse by verse
         for (let verseIndex = 0; verseIndex < maxVerses; verseIndex++) {
@@ -1363,7 +1333,8 @@
           const isSelected = SELECTED_VERSES.has(verseKey);
           const selectedClass = isSelected ? 'verse-selected' : '';
           
-          html += `<div data-verse-key="${verseKey}" class="${selectedClass}" style="margin-bottom: 16px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; ${isSelectMode ? 'cursor:pointer;' : ''}" ${isSelectMode ? `onclick="toggleVerseSelectionByKey('${verseKey}')"` : ''}>`;
+          // Verses are always clickable for selection
+          html += `<div data-verse-key="${verseKey}" class="${selectedClass}" style="margin-bottom: 16px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;" onclick="toggleVerseSelectionByKey('${verseKey}')">`;
           html += `<div style="font-weight: 600; color: var(--accent); margin-bottom: 8px;">Verse ${verseNum}</div>`;
           
           // First language verse
@@ -1390,13 +1361,13 @@
         // Single language mode
         const chapter = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex];
         let html = '';
-        const isSelectMode = document.body.classList.contains('verse-select-mode');
         chapter.forEach((verseText, verseIndex) => {
           const verseNum = verseIndex + 1;
           const verseKey = `${bookIndex}-${chapterIndex}-${verseIndex}`;
           const isSelected = SELECTED_VERSES.has(verseKey);
           const selectedClass = isSelected ? 'verse-selected' : '';
-          html += `<p data-verse-key="${verseKey}" class="${selectedClass}" ${isSelectMode ? 'onclick="toggleVerseSelectionByKey(\'' + verseKey + '\')"' : ''}><span class="verse-num">${verseNum}</span>${verseText}</p>`;
+          // Verses are always clickable for selection
+          html += `<p data-verse-key="${verseKey}" class="${selectedClass}" onclick="toggleVerseSelectionByKey('${verseKey}')" style="cursor: pointer;"><span class="verse-num">${verseNum}</span>${verseText}</p>`;
         });
         display.innerHTML = html || (CURRENT_LANGUAGE === 'tamil' ? 'வசனங்கள் கிடைக்கவில்லை.' : 'No verses found.');
       }
@@ -1486,29 +1457,8 @@
       loadVerses();
     }
     
-    // Verse selection functions
-    let VERSE_SELECT_MODE = false;
-    
-    function toggleVerseSelection() {
-      VERSE_SELECT_MODE = !VERSE_SELECT_MODE;
-      document.body.classList.toggle('verse-select-mode', VERSE_SELECT_MODE);
-      const selectText = document.getElementById('select-verses-text');
-      if (selectText) {
-        selectText.textContent = VERSE_SELECT_MODE ? 'Cancel' : 'Select';
-      }
-      
-      if (!VERSE_SELECT_MODE) {
-        // Clear selection when exiting select mode
-        SELECTED_VERSES.clear();
-      }
-      
-      // Reload verses to update click handlers
-      loadVerses();
-    }
-    
+    // Verse selection functions - verses are always clickable for selection
     function toggleVerseSelectionByKey(verseKey) {
-      if (!VERSE_SELECT_MODE) return;
-      
       if (SELECTED_VERSES.has(verseKey)) {
         SELECTED_VERSES.delete(verseKey);
       } else {
@@ -1523,21 +1473,6 @@
         } else {
           verseElement.classList.remove('verse-selected');
         }
-      }
-      
-      // Update share button visibility
-      updateShareButtonVisibility();
-    }
-    
-    function updateShareButtonVisibility() {
-      const shareBtn = document.getElementById('share-verses-btn');
-      // Share button is always enabled if we're viewing a chapter
-      if (shareBtn) {
-        const bookSelect = document.getElementById('book-select');
-        const chapterSelect = document.getElementById('chapter-select');
-        const hasSelection = bookSelect && bookSelect.value !== '' && chapterSelect && chapterSelect.value !== '';
-        shareBtn.style.opacity = hasSelection ? '1' : '0.5';
-        shareBtn.style.pointerEvents = hasSelection ? 'auto' : 'none';
       }
     }
     
@@ -2248,6 +2183,20 @@
       });
     }
     async function shareReadings() {
+      // Check if we're in Bible tab and have verses selected or viewing a chapter
+      const currentTab = document.querySelector('.tab.active')?.id;
+      if (currentTab === 'bible-tab') {
+        const bookSelect = document.getElementById('book-select');
+        const chapterSelect = document.getElementById('chapter-select');
+        
+        if (bookSelect && bookSelect.value !== '' && chapterSelect && chapterSelect.value !== '') {
+          // Share Bible verses instead of reading plan
+          await shareSelectedVerses();
+          return;
+        }
+      }
+      
+      // Otherwise, share reading plan
       try {
         const blob = await shareReadingsAsImage();
         if (!blob) throw new Error('Image creation failed');
