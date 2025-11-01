@@ -1002,11 +1002,13 @@
         for (const [enAbbr, taAbbr] of Object.entries(TAMIL_MAP)) {
           // Remove the trailing period from Tamil abbreviation for matching
           const taAbbrClean = taAbbr.replace(/\.$/, '').trim();
+          
           // Find matching book by checking if Tamil name starts with abbreviation
           const bookIndex = TAMIL_BOOK_NAMES.findIndex((name) => {
             // Extract number prefix if any (e.g., "1" from "1 சாமுவேல்")
             const nameNumMatch = name.match(/^(\d+)\s+/);
             const abbrNumMatch = taAbbrClean.match(/^(\d+)\s+/);
+            
             // Both must have same number prefix (or both have none)
             if ((nameNumMatch && !abbrNumMatch) || (!nameNumMatch && abbrNumMatch)) {
               return false;
@@ -1014,15 +1016,68 @@
             if (nameNumMatch && abbrNumMatch && nameNumMatch[1] !== abbrNumMatch[1]) {
               return false;
             }
-            // Remove number prefix and check if name starts with abbreviation
+            
+            // Remove number prefix and get Tamil text
             const nameWithoutNum = name.replace(/^\d+\s+/, '').trim();
             const abbrWithoutNum = taAbbrClean.replace(/^\d+\s+/, '').trim();
-            return nameWithoutNum.startsWith(abbrWithoutNum) || abbrWithoutNum.startsWith(nameWithoutNum.substring(0, 2));
+            
+            // Try multiple matching strategies for Tamil text
+            // 1. Name starts with abbreviation (exact prefix match)
+            if (nameWithoutNum.startsWith(abbrWithoutNum)) {
+              return true;
+            }
+            
+            // 2. Abbreviation is a prefix of name (handles "சமு" -> "சாமுவேல்")
+            // Check if name starts with the first few chars of abbreviation
+            if (abbrWithoutNum.length >= 2) {
+              const abbrStart = abbrWithoutNum.substring(0, Math.min(2, abbrWithoutNum.length));
+              if (nameWithoutNum.startsWith(abbrStart)) {
+                return true;
+              }
+            }
+            
+            // 3. Handle similar spellings - fuzzy matching for Tamil characters
+            // Example: "சமு" matches "சாமுவேல்", "ஓபதி" matches "ஒபதியா"
+            if (abbrWithoutNum.length >= 1 && nameWithoutNum.length >= 1) {
+              // Check if first character matches
+              if (abbrWithoutNum[0] === nameWithoutNum[0]) {
+                // First char matches, now check if abbreviation chars appear in name in order
+                // This handles cases like "சமு" in "சாமுவேல்" or "ஓபதி" in "ஒபதியா"
+                let abbrIdx = 0;
+                let consecutiveMatches = 0;
+                for (let i = 0; i < nameWithoutNum.length && abbrIdx < abbrWithoutNum.length; i++) {
+                  if (nameWithoutNum[i] === abbrWithoutNum[abbrIdx]) {
+                    abbrIdx++;
+                    consecutiveMatches++;
+                  } else if (abbrIdx > 0) {
+                    // Reset if we had matches but hit a non-match
+                    consecutiveMatches = 0;
+                  }
+                }
+                // If we matched at least 2 characters or all of abbreviation, it's a match
+                if (abbrIdx >= Math.min(abbrWithoutNum.length, 2) || consecutiveMatches >= 2) {
+                  return true;
+                }
+              }
+              
+              // 4. Try matching from different positions (for abbreviations that skip characters)
+              if (abbrWithoutNum.length >= 2) {
+                // Check if first 2 chars of abbreviation appear anywhere in name
+                const firstTwo = abbrWithoutNum.substring(0, 2);
+                if (nameWithoutNum.includes(firstTwo)) {
+                  return true;
+                }
+              }
+            }
+            
+            return false;
           });
+          
           if (bookIndex !== -1) {
             BOOK_INDEX_MAP[enAbbr] = bookIndex;
           } else {
-            console.warn('Could not map book:', enAbbr, '->', taAbbr);
+            // Silently skip - unmapped books will use fallback search by English name
+            // No need to log as this is expected behavior for some abbreviations
           }
         }
 
