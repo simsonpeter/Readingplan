@@ -766,8 +766,16 @@
       "Ephesians", "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus",
       "Philemon", "Hebrews", "James", "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"
     ];
-    // Dutch book names (same as English, as they use standard Bible book names)
-    const DUTCH_BOOK_NAMES = ENGLISH_BOOK_NAMES;
+    // Dutch book names
+    const DUTCH_BOOK_NAMES = [
+      "Genesis", "Exodus", "Leviticus", "Numeri", "Deuteronomium", "Jozua", "Rechters", "Ruth", "1 Samuel",
+      "2 Samuel", "1 Koningen", "2 Koningen", "1 Kronieken", "2 Kronieken", "Ezra", "Nehemia", "Esther", "Job",
+      "Psalmen", "Spreuken", "Prediker", "Hooglied", "Jesaja", "Jeremia", "Klaagliederen", "Ezechiël", "Daniël", "Hosea",
+      "Joël", "Amos", "Obadja", "Jona", "Micha", "Nahum", "Habakuk", "Zefanja", "Haggai", "Zacharia", "Maleachi",
+      "Matteüs", "Markus", "Lukas", "Johannes", "Handelingen", "Romeinen", "1 Korintiërs", "2 Korintiërs", "Galaten",
+      "Efeziërs", "Filippenzen", "Kolossenzen", "1 Thessalonicenzen", "2 Thessalonicenzen", "1 Timoteüs", "2 Timoteüs", "Titus",
+      "Filemon", "Hebreeën", "Jakobus", "1 Petrus", "2 Petrus", "1 Johannes", "2 Johannes", "3 Johannes", "Judas", "Openbaring"
+    ];
 
     // === CLICK HANDLER FOR REFERENCES ===
     function openBibleReference(ref) {
@@ -1102,9 +1110,14 @@
             // New format (matching Tamil/English): { Book: [{ Chapter: [{ Verse: [{ Verse: "..." }] }] }] }
             if (dutchBibleData.Book && Array.isArray(dutchBibleData.Book)) {
               console.log('📖 Dutch Bible in Tamil/English format -', dutchBibleData.Book.length, 'books');
+              
+              // Handle case where there might be 67 books (extra book) - only use first 66
+              const numBooks = Math.min(dutchBibleData.Book.length, 66);
+              
               DUTCH_BIBLE = {
-                books: dutchBibleData.Book.map((bookObj, index) => {
-                  const name = DUTCH_BOOK_NAMES[index] || `Book ${index + 1}`;
+                books: dutchBibleData.Book.slice(0, numBooks).map((bookObj, index) => {
+                  // Use Dutch book names, only if we have 66 or fewer books
+                  const name = (index < DUTCH_BOOK_NAMES.length) ? DUTCH_BOOK_NAMES[index] : `Boek ${index + 1}`;
                   const chapters = bookObj.Chapter ? bookObj.Chapter.map(ch =>
                     ch.Verse ? ch.Verse.map(v => v.Verse || '') : []
                   ) : [];
@@ -1112,13 +1125,21 @@
                 })
               };
               console.log('✓ Dutch Bible loaded:', DUTCH_BIBLE.books.length, 'books');
+              if (dutchBibleData.Book.length > 66) {
+                console.warn('⚠️ Dutch Bible has', dutchBibleData.Book.length, 'books (expected 66). Using first 66 books.');
+              }
             }
             // Old format: { books: [{ name, chapters: [{ verses: [{ text }] }] }] }
             else if (dutchBibleData.books && Array.isArray(dutchBibleData.books)) {
               console.log('📖 Dutch Bible in old format -', dutchBibleData.books.length, 'books');
+              
+              // Handle case where there might be 67 books (extra book) - only use first 66
+              const numBooks = Math.min(dutchBibleData.books.length, 66);
+              
               DUTCH_BIBLE = {
-                books: dutchBibleData.books.map((bookObj, index) => {
-                  const name = bookObj.name || DUTCH_BOOK_NAMES[index] || `Boek ${index + 1}`;
+                books: dutchBibleData.books.slice(0, numBooks).map((bookObj, index) => {
+                  // Use Dutch book names if not provided, only if we have 66 or fewer books
+                  const name = bookObj.name || ((index < DUTCH_BOOK_NAMES.length) ? DUTCH_BOOK_NAMES[index] : `Boek ${index + 1}`);
                   const chapters = bookObj.chapters ? bookObj.chapters.map(ch => {
                     return ch.verses ? ch.verses
                       .sort((a, b) => (a.verse || 0) - (b.verse || 0))
@@ -1128,6 +1149,9 @@
                 })
               };
               console.log('✓ Dutch Bible loaded:', DUTCH_BIBLE.books.length, 'books');
+              if (dutchBibleData.books.length > 66) {
+                console.warn('⚠️ Dutch Bible has', dutchBibleData.books.length, 'books (expected 66). Using first 66 books.');
+              }
             } else {
               console.error('❌ Dutch Bible format not recognized');
             }
