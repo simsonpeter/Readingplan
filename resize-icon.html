@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Resize Icon to 192x192</title>
+</head>
+<body>
+  <h1>Resize Icon</h1>
+  <p>This will create icon-192.png from the existing 512px icon.</p>
+  <button onclick="resizeIcon()">Generate icon-192.png</button>
+  <div id="preview"></div>
+  
+  <script>
+    function resizeIcon() {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function() {
+        // Create 192x192 canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 192;
+        canvas.height = 192;
+        const ctx = canvas.getContext('2d');
+        
+        // Draw resized image
+        ctx.drawImage(img, 0, 0, 192, 192);
+        
+        // Convert to blob and download
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'icon-192.png';
+          a.click();
+          
+          // Show preview
+          const preview = document.getElementById('preview');
+          preview.innerHTML = `
+            <h3>Preview:</h3>
+            <img src="${url}" alt="Icon 192" style="border: 2px solid #ccc; margin: 10px 0;">
+            <p>Icon downloaded! Place it in the Readingplan directory.</p>
+          `;
+        }, 'image/png');
+      };
+      img.src = './icon-512.png';
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create icon-192.png</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 16px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 20px 0;
+    }
+    button:hover {
+      background: #764ba2;
+    }
+    #preview {
+      margin: 20px 0;
+      text-align: center;
+    }
+    #preview img {
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Create icon-192.png</h1>
+  <p>Click the button to resize icon-512.png to 192x192 and download it.</p>
+  <button onclick="create192Icon()">📥 Generate icon-192.png</button>
+  <div id="preview"></div>
+  
+  <script>
+    function create192Icon() {
+      const img = new Image();
+      img.onload = function() {
+        // Create 192x192 canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 192;
+        canvas.height = 192;
+        const ctx = canvas.getContext('2d');
+        
+        // Use high-quality resizing
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
+        // Draw resized image
+        ctx.drawImage(img, 0, 0, 192, 192);
+        
+        // Convert to blob and download
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'icon-192.png';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          // Show preview
+          const preview = document.getElementById('preview');
+          preview.innerHTML = `
+            <h3>✅ Success!</h3>
+            <p>icon-192.png has been downloaded.</p>
+            <p><strong>Preview (192x192):</strong></p>
+            <img src="${url}" alt="Icon 192" style="width: 192px; height: 192px;">
+            <p style="margin-top: 20px; color: green;">
+              <strong>Done!</strong> Place the downloaded icon-192.png file in the Readingplan directory.
+            </p>
+          `;
+        }, 'image/png');
+      };
+      img.onerror = function() {
+        alert('Error: Could not load icon-512.png. Make sure it exists in the same directory.');
+      };
+      img.src = './icon-512.png';
+    }
+  </script>
+</body>
+</html>
