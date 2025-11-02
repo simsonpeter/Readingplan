@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#2c5a8c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="NJC Bible">
-  <title>ஒரு வருட பைபிள் — NJC</title>
+  <meta name="apple-mobile-web-app-title" content="JOURNEY">
+  <title>JOURNEY — Bible Reading Plan</title>
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
@@ -651,7 +651,7 @@
     <button class="nav-btn" onclick="goToDay(-1)" aria-label="Previous">
       <i class="fas fa-chevron-left"></i>
     </button>
-    <h1>One Year Bible</h1>
+    <h1>JOURNEY</h1>
     <button class="nav-btn" id="today-btn" onclick="goToToday()" style="display:none;" aria-label="Go to today">
       <i class="fas fa-home"></i>
     </button>
@@ -2387,7 +2387,7 @@
       try {
         const blob = await shareReadingsAsImage();
         if (!blob) throw new Error('Image creation failed');
-        const file = new File([blob], 'NJC_Bible_Reading.png', { type: 'image/png' });
+        const file = new File([blob], 'JOURNEY_Bible_Reading.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: 'Today’s Bible Reading',
