@@ -2128,15 +2128,24 @@
       render('morning-list', en.morning, ta.morning);
       render('evening-list', en.evening, ta.evening);
       currentDayIndex = dayIndex;
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      const currentDayOfYear = Math.floor((now - startOfYear) / 86400000);
+      // Calculate day of year more reliably to avoid DST/timezone issues
+      const startOfYear = new Date(year, 0, 1);
+      startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
+      const nowNormalized = new Date(now);
+      nowNormalized.setHours(12, 0, 0, 0);
+      const currentDayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
       const isToday = (dayIndex === currentDayOfYear && now.getFullYear() === year);
       document.getElementById('today-btn').style.display = isToday ? 'none' : 'flex';
     }
     function goToDay(offset) {
       const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+      const year = now.getFullYear();
+      // Calculate day of year more reliably to avoid DST/timezone issues
+      const startOfYear = new Date(year, 0, 1);
+      startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
+      const nowNormalized = new Date(now);
+      nowNormalized.setHours(12, 0, 0, 0);
+      const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
       let target = offset === 0 ? dayOfYear : (currentDayIndex !== null ? currentDayIndex + offset : dayOfYear + offset);
       target = Math.max(0, Math.min(READING_PLAN_EN.length - 1, target));
       renderReadings(target);
@@ -2144,8 +2153,13 @@
     }
     function goToToday() {
       const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+      const year = now.getFullYear();
+      // Calculate day of year more reliably to avoid DST/timezone issues
+      const startOfYear = new Date(year, 0, 1);
+      startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
+      const nowNormalized = new Date(now);
+      nowNormalized.setHours(12, 0, 0, 0);
+      const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
       renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
       if (currentView !== 'today') showTab('today');
     }
@@ -2235,8 +2249,12 @@
         const isCurrentMonth = (isCurrentYear && today.getMonth() === month);
         const todayDate = today.getDate();
         for (let day = 1; day <= daysInMonth; day++) {
-          const date = new Date(year, month, day);
-          const dayOfYear = Math.floor((date - new Date(year, 0, 1)) / 86400000);
+          // Calculate day of year more reliably to avoid DST/timezone issues
+          // Count days from start of year up to current month, then add current day - 1
+          let dayOfYear = day - 1; // days in current month (0-indexed)
+          for (let m = 0; m < month; m++) {
+            dayOfYear += new Date(year, m + 1, 0).getDate(); // days in month m
+          }
           const isToday = isCurrentMonth && day === todayDate;
           const isCompleted = progress[dayOfYear] === true;
           const isFuture = dayOfYear >= READING_PLAN_EN.length;
