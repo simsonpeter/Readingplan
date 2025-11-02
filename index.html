@@ -2484,6 +2484,19 @@
 
     // === INIT ===
     window.addEventListener('load', () => {
+      // Hide splash screen after app loads
+      const splashScreen = document.getElementById('splash-screen');
+      if (splashScreen) {
+        // Wait a minimum time for smooth animation (1.5 seconds)
+        setTimeout(() => {
+          splashScreen.classList.add('hidden');
+          // Remove from DOM after animation completes
+          setTimeout(() => {
+            splashScreen.remove();
+          }, 500);
+        }, 1500);
+      }
+      
       applySavedTheme();
       loadAppData();
       // Initially hide nav buttons - ensure they start hidden
