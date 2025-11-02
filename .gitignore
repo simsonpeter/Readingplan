@@ -1,0 +1,15 @@
+# Icons will be generated/added manually
+# icon-192.png
+# icon-512.png
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+
+# Node modules (if using icon generator)
+node_modules/
+
