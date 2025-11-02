@@ -605,39 +605,37 @@
       color: var(--accent);
     }
     .bottom-bar button i { font-size: 1.1rem; }
-    /* === FIXED NAV BUTTONS === */
-    #bible-nav-buttons {
+    /* === NAVIGATION BUTTONS IN BOTTOM BAR === */
+    .nav-btn-bottom {
       display: flex;
-      position: sticky;
-      bottom: 10px;
-      left: 0;
-      right: 0;
-      z-index: 5;
+      align-items: center;
       justify-content: center;
-      gap: 16px;
-    }
-    #bible-nav-buttons button {
-      padding: 10px 20px;
+      gap: 4px;
       background: none;
       color: #6c757d;
       border: none;
+      flex: 1;
+      max-width: 48%;
+      padding: 12px;
       border-radius: 0;
+      font-size: 0.9rem;
       font-weight: 600;
-      font-size: 0.95rem;
-      min-width: 80px;
       cursor: pointer;
+      min-height: 50px;
+      -webkit-tap-highlight-color: rgba(0,0,0,0.1);
       transition: color 0.2s ease;
     }
-    #bible-nav-buttons button:hover {
+    .nav-btn-bottom:hover {
       color: var(--accent);
       opacity: 0.8;
     }
-    .dark-mode #bible-nav-buttons button {
+    .dark-mode .nav-btn-bottom {
       color: #aaa;
     }
-    .dark-mode #bible-nav-buttons button:hover {
+    .dark-mode .nav-btn-bottom:hover {
       color: var(--accent);
     }
+    .nav-btn-bottom i { font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -719,15 +717,17 @@
       <div class="verse-display" id="verse-display">
         பைபிள் ஏற்றப்படுகிறது...
       </div>
-      <div id="bible-nav-buttons">
-        <button id="prev-chap-btn" onclick="navigateChapter(-1)">← Prev</button>
-        <button id="next-chap-btn" onclick="navigateChapter(1)">Next →</button>
-      </div>
     </div>
   </div>
   <div class="bottom-bar">
     <button class="progress-btn" id="mark-read-btn" onclick="markAsRead()">
       <i class="fas fa-check-circle"></i> Mark Read
+    </button>
+    <button class="nav-btn-bottom" id="prev-chap-btn" onclick="navigateChapter(-1)">
+      <i class="fas fa-chevron-left"></i> Prev
+    </button>
+    <button class="nav-btn-bottom" id="next-chap-btn" onclick="navigateChapter(1)">
+      Next <i class="fas fa-chevron-right"></i>
     </button>
     <button class="share-btn" onclick="shareReadings()">
       <i class="fas fa-share-alt"></i> Share
@@ -2183,9 +2183,23 @@
       
       // Show/hide bottom bar buttons based on active tab
       const markReadBtn = document.getElementById('mark-read-btn');
+      const prevBtn = document.getElementById('prev-chap-btn');
+      const nextBtn = document.getElementById('next-chap-btn');
+      
       if (markReadBtn) {
         // Show "Mark as Read" button only in Today tab, hide in Bible and Calendar tabs
         markReadBtn.style.display = view === 'today' ? 'flex' : 'none';
+      }
+      
+      if (prevBtn && nextBtn) {
+        // Show navigation buttons only in Bible tab, hide in other tabs
+        if (view === 'bible') {
+          prevBtn.style.display = 'flex';
+          nextBtn.style.display = 'flex';
+        } else {
+          prevBtn.style.display = 'none';
+          nextBtn.style.display = 'none';
+        }
       }
       
       if (view === 'calendar') {
@@ -2525,18 +2539,26 @@
       
       applySavedTheme();
       loadAppData();
-      // Initially hide nav buttons - ensure they start hidden
-      const titleBar = document.querySelector('.title-bar');
-      if (titleBar) {
-        titleBar.classList.remove('show-nav');
+      
+      // Set initial button visibility based on current tab
+      const markReadBtn = document.getElementById('mark-read-btn');
+      const prevBtn = document.getElementById('prev-chap-btn');
+      const nextBtn = document.getElementById('next-chap-btn');
+      
+      if (markReadBtn) {
+        // Show "Mark as Read" button only in Today tab
+        markReadBtn.style.display = currentView === 'today' ? 'flex' : 'none';
       }
-    });
-    
-    // Also ensure hidden on DOMContentLoaded
-    document.addEventListener('DOMContentLoaded', () => {
-      const titleBar = document.querySelector('.title-bar');
-      if (titleBar) {
-        titleBar.classList.remove('show-nav');
+      
+      if (prevBtn && nextBtn) {
+        // Show navigation buttons only in Bible tab
+        if (currentView === 'bible') {
+          prevBtn.style.display = 'flex';
+          nextBtn.style.display = 'flex';
+        } else {
+          prevBtn.style.display = 'none';
+          nextBtn.style.display = 'none';
+        }
       }
     });
   </script>
