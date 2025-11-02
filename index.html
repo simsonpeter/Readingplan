@@ -269,9 +269,15 @@
     .verse-item {
       margin: 6px 0;
       cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      pointer-events: auto;
     }
     .verse-item:hover {
       opacity: 0.8;
+      background: var(--bg);
+      border-radius: 4px;
+      padding: 2px 4px;
     }
     .ref-en {
       font-weight: 600;
@@ -2119,7 +2125,9 @@
       const render = (id, enRefs, taRefs) => {
         document.getElementById(id).innerHTML = enRefs.map((enRef, i) => {
           const taRef = taRefs[i] || enRef;
-          return `<div class="verse-item" onclick="openBibleReference('${enRef}')">
+          // Escape quotes in the reference to prevent onclick issues
+          const escapedRef = enRef.replace(/'/g, "\\'");
+          return `<div class="verse-item" onclick="openBibleReference('${escapedRef}')">
                     <div class="ref-en">${enRef}</div>
                     <div class="ref-ta">${taRef}</div>
                   </div>`;
