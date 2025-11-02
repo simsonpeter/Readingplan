@@ -2180,6 +2180,14 @@
       document.getElementById('today-view').style.display = view === 'today' ? 'flex' : 'none';
       document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
       document.getElementById('bible-view').style.display = view === 'bible' ? 'block' : 'none';
+      
+      // Show/hide bottom bar buttons based on active tab
+      const markReadBtn = document.getElementById('mark-read-btn');
+      if (markReadBtn) {
+        // Show "Mark as Read" button only in Today tab, hide in Bible and Calendar tabs
+        markReadBtn.style.display = view === 'today' ? 'flex' : 'none';
+      }
+      
       if (view === 'calendar') {
         renderFullCalendar();
       } else if (view === 'today') {
