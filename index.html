@@ -779,6 +779,8 @@
 
     // === CLICK HANDLER FOR REFERENCES ===
     function openBibleReference(ref) {
+      console.log('openBibleReference called with:', ref);
+      
       if (!CURRENT_BIBLE) {
         CURRENT_BIBLE = TAMIL_BIBLE;
       }
@@ -798,12 +800,14 @@
       if (engMatch) {
         bookKey = engMatch[1];
         chapterNum = parseInt(engMatch[2], 10);
+        console.log('Parsed English reference:', bookKey, chapterNum);
       } else {
         // Try Tamil format (e.g., "ஆதி.1", "மத்.5:1-26")
         const taMatch = ref.match(/^([^\d\s]+?)\.(\d+)/);
         if (taMatch) {
           const taBook = taMatch[1] + '.';
           chapterNum = parseInt(taMatch[2], 10);
+          console.log('Parsed Tamil reference:', taBook, chapterNum);
           // Find English key from TAMIL_MAP
           for (const [en, ta] of Object.entries(TAMIL_MAP)) {
             if (ta === taBook) {
@@ -816,13 +820,15 @@
 
       if (!bookKey) {
         console.warn('Could not parse reference:', ref);
+        alert('Could not parse reference: ' + ref);
         return;
       }
 
       // Find book index using BOOK_INDEX_MAP
       const bookIndex = BOOK_INDEX_MAP[bookKey];
       if (bookIndex === undefined || bookIndex < 0 || bookIndex >= CURRENT_BIBLE.books.length) {
-        console.warn('Book not found:', bookKey);
+        console.warn('Book not found:', bookKey, 'Available keys:', Object.keys(BOOK_INDEX_MAP).slice(0, 5));
+        alert('Book not found: ' + bookKey);
         return;
       }
 
@@ -830,6 +836,8 @@
       const maxChap = CURRENT_BIBLE.books[bookIndex].chapters.length;
       const safeChapter = Math.max(0, Math.min(chapterNum - 1, maxChap - 1));
 
+      console.log('Navigating to book:', bookIndex, 'chapter:', safeChapter);
+      
       // Navigate to the book and chapter
       navigateToBookChapter(bookIndex, safeChapter);
     }
