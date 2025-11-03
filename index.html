@@ -626,7 +626,7 @@
       width: 50px;
       padding: 12px;
       border-radius: 0;
-      font-size: 2rem;
+      font-size: 2.5rem;
       font-weight: 600;
       line-height: 1;
       cursor: pointer;
@@ -1519,6 +1519,8 @@
       const lastPos = loadLastReadPosition();
       select.value = lastPos.bookIndex;
       loadChapters(false); // Don't auto-load verses yet
+      // Update nav buttons immediately
+      updateNavButtons();
     }
     function loadChapters(autoLoadVerses = true) {
       const bookIndex = document.getElementById('book-select').value;
@@ -1542,10 +1544,11 @@
         chapterSelect.value = 0; // Default to chapter 1
       }
       
+      // Update nav buttons immediately when book/chapter changes
+      updateNavButtons();
+      
       if (autoLoadVerses) {
         loadVerses();
-      } else {
-        updateNavButtons();
       }
     }
     
