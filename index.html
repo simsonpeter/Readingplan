@@ -2265,7 +2265,10 @@
       // Escape single quotes in the word for onclick attribute
       return text.replace(/([\u0B80-\u0BFF]{3,})/g, (match) => {
         const escaped = match.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        return `<span class="dictionary-word" data-word="${escaped}" onclick="lookupDictionary('${escaped}'); event.stopPropagation(); event.preventDefault(); return false;">${match}</span>`;
+        return `<span class="dictionary-word" data-word="${escaped}" 
+          onclick="lookupDictionary('${escaped}'); event.stopPropagation(); event.preventDefault(); return false;"
+          ontouchstart="event.stopPropagation();"
+          onmousedown="event.stopPropagation();">${match}</span>`;
       });
     }
     
