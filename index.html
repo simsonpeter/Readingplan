@@ -936,9 +936,38 @@
       }
 
       // Find book index using BOOK_INDEX_MAP
-      const bookIndex = BOOK_INDEX_MAP[bookKey];
+      let bookIndex = BOOK_INDEX_MAP[bookKey];
+      
+      // If not found, try to find by direct book name match (fallback)
+      if (bookIndex === undefined && CURRENT_BIBLE) {
+        const bookKeyClean = bookKey.toLowerCase().replace(/\.$/, '').trim();
+        // Try matching book name directly
+        for (let i = 0; i < CURRENT_BIBLE.books.length; i++) {
+          const bookName = CURRENT_BIBLE.books[i].name.toLowerCase();
+          
+          // Check if book name starts with or contains the abbreviation
+          if (bookName.includes(bookKeyClean) || bookKeyClean.includes(bookName.split(' ')[0])) {
+            // Also check if number prefix matches for numbered books
+            const bookNumMatch = bookKey.match(/^(\d+)\s+/);
+            const nameNumMatch = CURRENT_BIBLE.books[i].name.match(/^(\d+)\s+/);
+            if (bookNumMatch && nameNumMatch) {
+              if (bookNumMatch[1] === nameNumMatch[1]) {
+                bookIndex = i;
+                console.log('Fallback match found:', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+                break;
+              }
+            } else if (!bookNumMatch && !nameNumMatch) {
+              bookIndex = i;
+              console.log('Fallback match found:', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+              break;
+            }
+          }
+        }
+      }
+      
       if (bookIndex === undefined || bookIndex < 0 || bookIndex >= CURRENT_BIBLE.books.length) {
-        console.warn('Book not found:', bookKey, 'Available keys:', Object.keys(BOOK_INDEX_MAP).slice(0, 5));
+        console.warn('Book not found:', bookKey, 'Available keys:', Object.keys(BOOK_INDEX_MAP).slice(0, 10));
+        console.warn('Available books:', CURRENT_BIBLE ? CURRENT_BIBLE.books.slice(0, 5).map(b => b.name) : 'N/A');
         alert('Book not found: ' + bookKey);
         return;
       }
