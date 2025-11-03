@@ -1642,19 +1642,30 @@
         return;
       }
       
-      if (!CURRENT_BIBLE) return;
+      const currentText = document.getElementById('nav-current-text');
+      if (!currentText) return;
+      
+      // Always show the text div in Bible tab (even if empty)
+      currentText.style.display = 'flex';
+      
+      if (!CURRENT_BIBLE) {
+        currentText.textContent = '';
+        return;
+      }
+      
       const bookSelect = document.getElementById('book-select');
       const chapterSelect = document.getElementById('chapter-select');
-      const currentText = document.getElementById('nav-current-text');
       
-      if (!bookSelect || !chapterSelect || !currentText) return;
+      if (!bookSelect || !chapterSelect) {
+        currentText.textContent = '';
+        return;
+      }
       
       const currentBookIndex = parseInt(bookSelect.value);
       const currentChapterIndex = parseInt(chapterSelect.value);
       
-      if (isNaN(currentBookIndex) || isNaN(currentChapterIndex)) {
+      if (isNaN(currentBookIndex) || isNaN(currentChapterIndex) || bookSelect.value === '' || chapterSelect.value === '') {
         currentText.textContent = '';
-        currentText.style.display = 'none';
         return;
       }
       
@@ -1663,7 +1674,6 @@
       const currentBookAbbrev = abbreviateBookName(currentBookName);
       const currentChapterNum = currentChapterIndex + 1;
       currentText.textContent = `${currentBookAbbrev}${currentChapterNum}`;
-      currentText.style.display = 'flex';
     }
     
     function loadVerses() {
@@ -2444,7 +2454,14 @@
       // Show/hide current chapter text only in Bible tab
       const currentText = document.getElementById('nav-current-text');
       if (currentText) {
-        currentText.style.display = view === 'bible' ? 'flex' : 'none';
+        if (view === 'bible') {
+          currentText.style.display = 'flex';
+          // Update nav buttons immediately when switching to Bible tab
+          updateNavButtons();
+        } else {
+          currentText.style.display = 'none';
+          currentText.textContent = '';
+        }
       }
       
       if (view === 'calendar') {
