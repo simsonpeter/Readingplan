@@ -564,7 +564,7 @@
       justify-content: space-around;
       padding: 10px 16px;
       padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
-      gap: 8px;
+      gap: 4px;
       background: var(--card);
       border-top: 1px solid var(--border);
       position: fixed;
@@ -622,17 +622,18 @@
       color: #6c757d;
       border: none;
       flex: 0 0 auto;
-      min-width: 60px;
-      width: 60px;
-      padding: 12px;
+      min-width: 70px;
+      width: 70px;
+      padding: 12px 8px;
       border-radius: 0;
-      font-size: 4rem;
+      font-size: 5rem;
       font-weight: 600;
       line-height: 1;
       cursor: pointer;
       height: 50px;
       -webkit-tap-highlight-color: rgba(0,0,0,0.1);
       transition: color 0.2s ease;
+      margin: 0;
     }
     .nav-btn-bottom:hover {
       color: var(--accent);
@@ -650,7 +651,7 @@
       align-items: center;
       justify-content: center;
       flex: 1;
-      padding: 12px;
+      padding: 12px 4px;
       font-size: 1.1rem;
       font-weight: 600;
       color: var(--text);
@@ -661,6 +662,7 @@
       line-height: 1;
       overflow: hidden;
       text-overflow: ellipsis;
+      margin: 0;
     }
     .dark-mode .nav-current-chapter {
       color: #fff;
@@ -1630,6 +1632,16 @@
     }
     
     function updateNavButtons() {
+      // Only update if we're in Bible tab
+      if (currentView !== 'bible') {
+        const currentText = document.getElementById('nav-current-text');
+        if (currentText) {
+          currentText.textContent = '';
+          currentText.style.display = 'none';
+        }
+        return;
+      }
+      
       if (!CURRENT_BIBLE) return;
       const bookSelect = document.getElementById('book-select');
       const chapterSelect = document.getElementById('chapter-select');
@@ -1642,6 +1654,7 @@
       
       if (isNaN(currentBookIndex) || isNaN(currentChapterIndex)) {
         currentText.textContent = '';
+        currentText.style.display = 'none';
         return;
       }
       
@@ -1650,6 +1663,7 @@
       const currentBookAbbrev = abbreviateBookName(currentBookName);
       const currentChapterNum = currentChapterIndex + 1;
       currentText.textContent = `${currentBookAbbrev}${currentChapterNum}`;
+      currentText.style.display = 'flex';
     }
     
     function loadVerses() {
