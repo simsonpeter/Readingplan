@@ -2152,8 +2152,8 @@
       // Match Tamil words (3+ characters, avoiding punctuation and numbers)
       // Escape single quotes in the word for onclick attribute
       return text.replace(/([\u0B80-\u0BFF]{3,})/g, (match) => {
-        const escaped = match.replace(/'/g, "\\'");
-        return `<span class="dictionary-word" onclick="lookupDictionary('${escaped}'); event.stopPropagation();">${match}</span>`;
+        const escaped = match.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        return `<span class="dictionary-word" data-word="${escaped}" onclick="event.stopPropagation(); event.preventDefault(); lookupDictionary('${escaped}'); return false;">${match}</span>`;
       });
     }
     
@@ -2211,12 +2211,18 @@
     
     // Handle verse click - check if clicking on dictionary word or verse selection
     function handleVerseClick(event, verseKey) {
-      // If clicking on a dictionary word, let it handle the click
-      if (event.target.classList.contains('dictionary-word')) {
-        return; // Dictionary word click already handled
+      // Check if click is on or inside a dictionary word
+      const clickedElement = event.target;
+      if (clickedElement.classList.contains('dictionary-word') || 
+          clickedElement.closest('.dictionary-word')) {
+        // Dictionary word click - don't select verse
+        event.stopPropagation();
+        return false;
       }
       // Otherwise, toggle verse selection
+      event.stopPropagation();
       toggleVerseSelectionByKey(verseKey);
+      return false;
     }
     
     // Verse selection functions - verses are always clickable for selection
