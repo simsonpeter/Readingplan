@@ -626,7 +626,6 @@
       width: 80px;
       padding: 8px;
       border-radius: 0;
-      font-size: 7rem;
       font-weight: 600;
       line-height: 1;
       cursor: pointer;
@@ -634,6 +633,9 @@
       -webkit-tap-highlight-color: rgba(0,0,0,0.1);
       transition: color 0.2s ease;
       margin: 0;
+    }
+    .nav-btn-bottom i {
+      font-size: 3.5rem;
     }
     .nav-btn-bottom:hover {
       color: var(--accent);
@@ -753,9 +755,13 @@
     <button class="progress-btn" id="mark-read-btn" onclick="markAsRead()">
       <i class="fas fa-check-circle"></i> Mark Read
     </button>
-    <button class="nav-btn-bottom" id="prev-chap-btn" onclick="navigateChapter(-1)">‹</button>
+    <button class="nav-btn-bottom" id="prev-chap-btn" onclick="navigateChapter(-1)">
+      <i class="fas fa-chevron-left"></i>
+    </button>
     <div class="nav-current-chapter" id="nav-current-text"></div>
-    <button class="nav-btn-bottom" id="next-chap-btn" onclick="navigateChapter(1)">›</button>
+    <button class="nav-btn-bottom" id="next-chap-btn" onclick="navigateChapter(1)">
+      <i class="fas fa-chevron-right"></i>
+    </button>
     <button class="share-btn" onclick="shareReadings()">
       <i class="fas fa-share-alt"></i> Share
     </button>
@@ -2453,8 +2459,8 @@
       const nextBtn = document.getElementById('next-chap-btn');
       
       if (markReadBtn) {
-        // Show "Mark as Read" button only in Today tab, hide in Bible and Calendar tabs
-        markReadBtn.style.display = view === 'today' ? 'flex' : 'none';
+        // Show "Mark as Read" button in Today and Calendar tabs, hide in Bible tab
+        markReadBtn.style.display = (view === 'today' || view === 'calendar') ? 'flex' : 'none';
       }
       
       if (prevBtn && nextBtn) {
