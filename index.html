@@ -2165,18 +2165,24 @@
       }
       
       try {
+        // Escape single quotes in word for SQL query
+        const escapedWord = word.replace(/'/g, "''");
+        
         // First, check if word exists in words table (variations)
-        let query = `SELECT standard_form FROM words WHERE variation = ? LIMIT 1`;
-        let result = DICTIONARY_DB.exec(query, [word]);
+        let query = `SELECT standard_form FROM words WHERE variation = '${escapedWord}' LIMIT 1`;
+        let result = DICTIONARY_DB.exec(query);
         let standardWord = word;
         
         if (result.length > 0 && result[0].values.length > 0) {
           standardWord = result[0].values[0][0];
         }
         
+        // Escape standard word for SQL query
+        const escapedStandard = standardWord.replace(/'/g, "''");
+        
         // Lookup in dictionary table
-        query = `SELECT topic, definition FROM dictionary WHERE topic = ? LIMIT 1`;
-        result = DICTIONARY_DB.exec(query, [standardWord]);
+        query = `SELECT topic, definition FROM dictionary WHERE topic = '${escapedStandard}' LIMIT 1`;
+        result = DICTIONARY_DB.exec(query);
         
         const modal = document.getElementById('dictionary-modal');
         const title = document.getElementById('dictionary-title');

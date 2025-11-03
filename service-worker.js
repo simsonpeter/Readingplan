@@ -10,9 +10,12 @@ const STATIC_CACHE_FILES = [
   './bibles/tamilbible.json',
   './bibles/englishbible.json',
   './bibles/dutchbible.json',
+  './dictionary/TSVPA1975.dictionary.SQLite3',
   './manifest.json',
   'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css'
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.wasm'
 ];
 
 // Install event - cache static files
