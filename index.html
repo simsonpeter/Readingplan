@@ -3141,14 +3141,13 @@
     function showTab(view) {
       currentView = view;
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      const tabIndex = ['today','calendar','bible','about'].indexOf(view);
+      const tabIndex = ['today','calendar','bible'].indexOf(view);
       if (tabIndex >= 0) {
         document.querySelectorAll('.tab-btn')[tabIndex].classList.add('active');
       }
       document.getElementById('today-view').style.display = view === 'today' ? 'flex' : 'none';
       document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
       document.getElementById('bible-view').style.display = view === 'bible' ? 'block' : 'none';
-      document.getElementById('about-view').style.display = view === 'about' ? 'block' : 'none';
       
       // If switching to today view, ensure date card is visible
       if (view === 'today') {
