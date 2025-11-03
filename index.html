@@ -1468,6 +1468,22 @@
           
           if (bookIndex !== -1) {
             BOOK_INDEX_MAP[enAbbr] = bookIndex;
+            // Special verification for Phm. - ensure it maps to Philemon (56), not Philippians (49)
+            if (enAbbr === 'Phm.') {
+              if (bookIndex !== 56) {
+                console.error('⚠️ Phm. mapped to wrong index:', bookIndex, 'Expected: 56 (Philemon), got:', TAMIL_BOOK_NAMES[bookIndex]);
+                // Remove wrong mapping
+                delete BOOK_INDEX_MAP[enAbbr];
+                // Try to find correct match manually
+                const philemonIdx = TAMIL_BOOK_NAMES.findIndex(name => name === 'பிலேமோன்');
+                if (philemonIdx !== -1) {
+                  BOOK_INDEX_MAP[enAbbr] = philemonIdx;
+                  console.log('✅ Corrected Phm. mapping to index', philemonIdx, '(Philemon)');
+                }
+              } else {
+                console.log('✅ Phm. correctly mapped to index 56 (Philemon)');
+              }
+            }
           } else {
             // Log unmapped books for debugging
             console.warn('Could not map book:', enAbbr, '->', taAbbr);
