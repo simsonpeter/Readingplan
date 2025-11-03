@@ -941,8 +941,9 @@
       
       console.log('Looking for bookKey:', bookKey, 'in BOOK_INDEX_MAP:', bookIndex !== undefined ? 'FOUND at index ' + bookIndex : 'NOT FOUND');
       
-      // If not found in BOOK_INDEX_MAP, only then try fallback matching
+      // If not found in BOOK_INDEX_MAP, try fallback matching using abbreviation map
       if (bookIndex === undefined && CURRENT_BIBLE) {
+        console.log('BOOK_INDEX_MAP lookup failed for:', bookKey, 'Attempting fallback...');
         const bookKeyClean = bookKey.toLowerCase().replace(/\.$/, '').trim();
         const bookKeyParts = bookKeyClean.split(' ');
         
@@ -986,34 +987,19 @@
               'zep': 'zephaniah', 'hag': 'haggai', 'zach': 'zechariah', 'mal': 'malachi'
             };
             
-            // Check if abbreviation maps to book name - use exact match first
+            // PRIORITY: Check if abbreviation maps to book name - ONLY use this, don't do loose matching
             const fullName = abbrevMap[bookKeyClean];
             if (fullName) {
-              // Check if this book name exactly matches the mapped full name
+              // Check if this book name exactly matches the mapped full name (case-insensitive check)
               if (bookName === fullName) {
                 bookIndex = i;
                 console.log('Fallback match found (abbrev map - exact):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
                 break;
               }
-              // Also check if book name starts with the mapped name
-              if (bookName.startsWith(fullName)) {
-                bookIndex = i;
-                console.log('Fallback match found (abbrev map - starts with):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
-                break;
-              }
             }
             
-            // AVOID loose matching - it causes false matches (e.g., "jer" matching "esther")
-            // Only use as absolute last resort with very strict conditions
-            if (bookIndex === undefined && bookKeyClean.length >= 4) {
-              // Only match if abbreviation is at least 4 chars AND book name starts with it
-              // This prevents "jer" (3 chars) from matching "esther" accidentally
-              if (bookName.startsWith(bookKeyClean) && bookName.length > bookKeyClean.length) {
-                bookIndex = i;
-                console.log('Fallback match found (strict prefix - 4+ chars):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
-                break;
-              }
-            }
+            // NO loose matching at all - it causes false matches
+            // If abbreviation map doesn't have it, we're done with this book
           }
         }
       }
