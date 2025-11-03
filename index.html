@@ -967,7 +967,42 @@
             }
           } else if (!bookNumMatch && !nameNumMatch) {
             // Neither has numbers - match abbreviation to book name start
-            // For abbreviations like "gen", "mat", "exo" - match against book name start
+            // Create abbreviation mapping for common books
+            const abbrevMap = {
+              'gen': 'genesis',
+              'exo': 'exodus',
+              'lev': 'leviticus',
+              'num': 'numbers',
+              'deu': 'deuteronomy',
+              'jos': 'joshua',
+              'judg': 'judges',
+              'mat': 'matthew',
+              'mar': 'mark',
+              'luk': 'luke',
+              'john': 'john',
+              'act': 'acts',
+              'rom': 'romans',
+              'gal': 'galatians',
+              'eph': 'ephesians',
+              'phil': 'philippians',
+              'col': 'colossians',
+              'tit': 'titus',
+              'phm': 'philemon',
+              'heb': 'hebrews',
+              'jam': 'james',
+              'jude': 'jude',
+              'rev': 'revelation'
+            };
+            
+            // Check if abbreviation maps to book name
+            const fullName = abbrevMap[bookKeyClean];
+            if (fullName && bookName.startsWith(fullName)) {
+              bookIndex = i;
+              console.log('Fallback match found (abbrev map):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+              break;
+            }
+            
+            // Fallback: match abbreviation to book name start
             if (bookName.startsWith(bookKeyClean) || 
                 (bookKeyClean.length >= 3 && bookName.includes(bookKeyClean)) ||
                 (nameParts.length > 0 && nameParts[0].startsWith(bookKeyClean))) {
