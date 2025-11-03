@@ -2309,30 +2309,50 @@
     }
     
     // === DICTIONARY FUNCTIONS ===
-    // Make Tamil words clickable for dictionary lookup
+    // Make Tamil words clickable for dictionary lookup (only if they exist in dictionary)
     function makeWordsClickable(text) {
       if (!DICTIONARY_DB) {
-        console.warn('⚠️ Dictionary DB not loaded yet');
         return text;
       }
       if (!text || text.trim() === '') return text;
       
-      console.log('🔍 Making words clickable, text length:', text.length, 'DB loaded:', !!DICTIONARY_DB);
-      
       // Match Tamil words (3+ characters, avoiding punctuation and numbers)
-      // Escape single quotes in the word for onclick attribute
+      // Only make words clickable if they exist in the dictionary
       const result = text.replace(/([\u0B80-\u0BFF]{3,})/g, (match) => {
-        const escaped = match.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        return `<span class="dictionary-word" data-word="${escaped}" 
-          onclick="lookupDictionary('${escaped}'); event.stopPropagation(); event.preventDefault(); return false;"
-          ontouchstart="event.stopPropagation();"
-          onmousedown="event.stopPropagation();">${match}</span>`;
+        // Check if word exists in dictionary (quick check)
+        try {
+          const escapedWord = match.replace(/'/g, "''");
+          
+          // First check words table for variations
+          let query = `SELECT standard_form FROM words WHERE variation = '${escapedWord}' LIMIT 1`;
+          let result = DICTIONARY_DB.exec(query);
+          let standardWord = match;
+          
+          if (result.length > 0 && result[0].values.length > 0) {
+            standardWord = result[0].values[0][0];
+          }
+          
+          // Check if word exists in dictionary table
+          const escapedStandard = standardWord.replace(/'/g, "''");
+          query = `SELECT topic FROM dictionary WHERE topic = '${escapedStandard}' LIMIT 1`;
+          result = DICTIONARY_DB.exec(query);
+          
+          // Only make clickable if word exists in dictionary
+          if (result.length > 0 && result[0].values.length > 0) {
+            const escaped = match.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return `<span class="dictionary-word" data-word="${escaped}" 
+              onclick="lookupDictionary('${escaped}'); event.stopPropagation(); event.preventDefault(); return false;"
+              ontouchstart="event.stopPropagation();"
+              onmousedown="event.stopPropagation();">${match}</span>`;
+          }
+        } catch (err) {
+          // If error, don't make clickable
+          console.warn('Dictionary check error for word:', match, err);
+        }
+        
+        // Return original word if not in dictionary
+        return match;
       });
-      
-      const matches = text.match(/([\u0B80-\u0BFF]{3,})/g);
-      if (matches) {
-        console.log('✅ Found', matches.length, 'Tamil words to make clickable');
-      }
       
       return result;
     }
