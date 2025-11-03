@@ -216,16 +216,10 @@
       top: 60px;
       z-index: 99;
     }
-    /* Ensure language selector and parallel button stay above tabs */
+    /* Language selector and parallel button - regular positioning, just ensure visibility */
     #bible-view .selector-row:first-of-type {
-      position: sticky;
-      top: 120px; /* Below title bar (60px) + tabs (~60px) */
-      background: var(--bg);
-      padding: 8px 0;
-      z-index: 100;
       margin-top: 0 !important;
       margin-bottom: 8px !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     .tab-btn {
       flex: 1;
@@ -2612,25 +2606,33 @@
       document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
       document.getElementById('bible-view').style.display = view === 'bible' ? 'block' : 'none';
       
-      // If switching to today view, scroll to top to show date card properly
+      // If switching to today view, ensure date card is visible
       if (view === 'today') {
         setTimeout(() => {
-          const todayView = document.getElementById('today-view');
-          if (todayView) {
-            // Scroll the content area (parent) to show the date card
-            const content = todayView.closest('.content');
-            if (content) {
-              content.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-            // Also scroll window if needed
-            const dateCard = document.getElementById('date-card');
-            if (dateCard) {
+          const dateCard = document.getElementById('date-card');
+          if (dateCard) {
+            // Only scroll if the card is not visible (under tabs)
+            const rect = dateCard.getBoundingClientRect();
+            const tabsHeight = 120; // title bar + tabs
+            if (rect.top < tabsHeight) {
               dateCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              // Account for sticky header
-              window.scrollTo({ top: Math.max(0, dateCard.offsetTop - 120), behavior: 'smooth' });
             }
           }
-        }, 50);
+        }, 100);
+      }
+      
+      // If switching to bible view, ensure language selector is visible
+      if (view === 'bible') {
+        setTimeout(() => {
+          const langSelector = document.getElementById('bible-language-select');
+          if (langSelector) {
+            const rect = langSelector.getBoundingClientRect();
+            const tabsHeight = 120; // title bar + tabs
+            if (rect.top < tabsHeight) {
+              langSelector.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }
+        }, 100);
       }
       
       // Show/hide bottom bar buttons based on active tab
