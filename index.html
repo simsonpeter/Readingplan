@@ -558,6 +558,108 @@
       padding-left: 12px !important;
       box-shadow: 0 2px 4px rgba(44, 90, 140, 0.2);
     }
+    /* Dictionary Modal */
+    .dictionary-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .dictionary-modal.active {
+      display: flex;
+    }
+    .dictionary-modal-content {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    .dictionary-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+    }
+    .dictionary-modal-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .dictionary-close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text);
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+    .dictionary-close-btn:hover {
+      background: var(--bg);
+    }
+    .dictionary-content {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: var(--text);
+      font-family: "Noto Sans Tamil", "Latha", sans-serif;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    .dictionary-content a {
+      color: var(--accent);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .dictionary-content a:hover {
+      opacity: 0.8;
+    }
+    .dictionary-word {
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: var(--accent);
+      text-decoration-thickness: 2px;
+      transition: background 0.2s;
+      padding: 2px 4px;
+      border-radius: 4px;
+      position: relative;
+      z-index: 10;
+      display: inline-block;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .dictionary-word:hover {
+      background: rgba(44, 90, 140, 0.25);
+      text-decoration-thickness: 3px;
+    }
+    /* Ensure verse paragraphs allow pointer events on dictionary words */
+    .verse-display p {
+      pointer-events: auto;
+    }
+    .verse-display p .dictionary-word {
+      pointer-events: auto;
+    }
     .parallel-lang-modal {
       position: fixed;
       top: 0;
@@ -2153,7 +2255,7 @@
       // Escape single quotes in the word for onclick attribute
       return text.replace(/([\u0B80-\u0BFF]{3,})/g, (match) => {
         const escaped = match.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        return `<span class="dictionary-word" data-word="${escaped}" onclick="event.stopPropagation(); event.preventDefault(); lookupDictionary('${escaped}'); return false;">${match}</span>`;
+        return `<span class="dictionary-word" data-word="${escaped}" onclick="lookupDictionary('${escaped}'); event.stopPropagation(); event.preventDefault(); return false;">${match}</span>`;
       });
     }
     
