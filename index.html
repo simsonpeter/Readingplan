@@ -722,10 +722,10 @@
       <i class="fas fa-check-circle"></i> Mark Read
     </button>
     <button class="nav-btn-bottom" id="prev-chap-btn" onclick="navigateChapter(-1)">
-      <i class="fas fa-chevron-left"></i> <span id="prev-btn-text"></span>
+      <i class="fas fa-chevron-left"></i><span id="prev-btn-text"></span>
     </button>
     <button class="nav-btn-bottom" id="next-chap-btn" onclick="navigateChapter(1)">
-      <span id="next-btn-text"></span> <i class="fas fa-chevron-right"></i>
+      <span id="next-btn-text"></span><i class="fas fa-chevron-right"></i>
     </button>
     <button class="share-btn" onclick="shareReadings()">
       <i class="fas fa-share-alt"></i> Share
@@ -1561,20 +1561,20 @@
         }
       }
       
-      // Update previous button
+      // Update previous button: < icon, then BookName ChapterNumber
       if (prevBookIndex >= 0) {
         const prevBookName = CURRENT_BIBLE.books[prevBookIndex].name;
         const prevChapterNum = prevChapterIndex + 1;
-        prevBtnText.textContent = `< ${prevBookName} ${prevChapterNum}`;
+        prevBtnText.textContent = ` ${prevBookName} ${prevChapterNum}`;
       } else {
         prevBtnText.textContent = '';
       }
       
-      // Update next button
+      // Update next button: BookName ChapterNumber, then > icon
       if (nextBookIndex >= 0) {
         const nextBookName = CURRENT_BIBLE.books[nextBookIndex].name;
         const nextChapterNum = nextChapterIndex + 1;
-        nextBtnText.textContent = `${nextBookName} ${nextChapterNum} >`;
+        nextBtnText.textContent = `${nextBookName} ${nextChapterNum} `;
       } else {
         nextBtnText.textContent = '';
       }
