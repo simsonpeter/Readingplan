@@ -1502,23 +1502,61 @@
         // Load Tamil Bible Dictionary (SQLite)
         try {
           console.log('📚 Loading Tamil Bible Dictionary...');
-          const dictRes = await fetch('dictionary/TSVPA1975.dictionary.SQLite3');
-          if (dictRes.ok) {
-            const dictArrayBuffer = await dictRes.arrayBuffer();
-            // Initialize SQL.js
-            if (typeof initSqlJs !== 'undefined') {
-              const SQL = await initSqlJs({
+          
+          // Wait for SQL.js to be available (it loads asynchronously)
+          let SQL = null;
+          let attempts = 0;
+          while (typeof initSqlJs === 'undefined' && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+          }
+          
+          if (typeof initSqlJs === 'undefined') {
+            console.error('❌ SQL.js library not available after waiting');
+            // Try to load it dynamically
+            await new Promise((resolve) => {
+              const script = document.createElement('script');
+              script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js';
+              script.onload = resolve;
+              script.onerror = () => {
+                console.error('❌ Failed to load SQL.js from CDN');
+                resolve();
+              };
+              document.head.appendChild(script);
+            });
+            
+            // Wait a bit more for initSqlJs to be available
+            attempts = 0;
+            while (typeof initSqlJs === 'undefined' && attempts < 20) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+              attempts++;
+            }
+          }
+          
+          if (typeof initSqlJs !== 'undefined') {
+            const dictRes = await fetch('dictionary/TSVPA1975.dictionary.SQLite3');
+            if (dictRes.ok) {
+              const dictArrayBuffer = await dictRes.arrayBuffer();
+              SQL = await initSqlJs({
                 locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
               });
               DICTIONARY_DB = new SQL.Database(new Uint8Array(dictArrayBuffer));
-              console.log('✅ Dictionary database loaded with', DICTIONARY_DB.exec('SELECT COUNT(*) FROM dictionary')[0].values[0][0], 'entries');
+              const countResult = DICTIONARY_DB.exec('SELECT COUNT(*) FROM dictionary');
+              if (countResult.length > 0 && countResult[0].values.length > 0) {
+                console.log('✅ Dictionary database loaded with', countResult[0].values[0][0], 'entries');
+                // Reload verses if we're already viewing Tamil Bible
+                if (CURRENT_LANGUAGE === 'tamil' && CURRENT_BIBLE) {
+                  setTimeout(() => loadVerses(), 100);
+                }
+              }
             } else {
-              console.warn('⚠️ SQL.js not loaded yet');
+              console.error('❌ Failed to fetch dictionary file:', dictRes.status);
             }
-            console.log('✅ Tamil Bible Dictionary loaded successfully');
+          } else {
+            console.error('❌ SQL.js library still not available');
           }
         } catch (dictErr) {
-          console.warn('⚠️ Could not load dictionary:', dictErr);
+          console.error('❌ Could not load dictionary:', dictErr);
         }
         
         // Load Tamil Bible
