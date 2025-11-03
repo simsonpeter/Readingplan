@@ -723,10 +723,10 @@
       <i class="fas fa-check-circle"></i> Mark Read
     </button>
     <button class="nav-btn-bottom" id="prev-chap-btn" onclick="navigateChapter(-1)">
-      <i class="fas fa-chevron-left"></i><span id="prev-btn-text"></span>
+      <span id="prev-btn-text"></span>
     </button>
     <button class="nav-btn-bottom" id="next-chap-btn" onclick="navigateChapter(1)">
-      <span id="next-btn-text"></span><i class="fas fa-chevron-right"></i>
+      <span id="next-btn-text"></span>
     </button>
     <button class="share-btn" onclick="shareReadings()">
       <i class="fas fa-share-alt"></i> Share
@@ -1639,22 +1639,22 @@
         }
       }
       
-      // Update previous button: <abbrev.chapter> format
+      // Update previous button: <abbrev.chapter> format (e.g., <gen.1)
       if (prevBookIndex >= 0) {
         const prevBookName = CURRENT_BIBLE.books[prevBookIndex].name;
         const prevBookAbbrev = abbreviateBookName(prevBookName);
         const prevChapterNum = prevChapterIndex + 1;
-        prevBtnText.textContent = `${prevBookAbbrev}${prevChapterNum}`;
+        prevBtnText.textContent = `<${prevBookAbbrev}${prevChapterNum}`;
       } else {
         prevBtnText.textContent = '';
       }
       
-      // Update next button: <abbrev.chapter> format
+      // Update next button: <abbrev.chapter> format (e.g., gen.2>)
       if (nextBookIndex >= 0) {
         const nextBookName = CURRENT_BIBLE.books[nextBookIndex].name;
         const nextBookAbbrev = abbreviateBookName(nextBookName);
         const nextChapterNum = nextChapterIndex + 1;
-        nextBtnText.textContent = `${nextBookAbbrev}${nextChapterNum}`;
+        nextBtnText.textContent = `${nextBookAbbrev}${nextChapterNum}>`;
       } else {
         nextBtnText.textContent = '';
       }
