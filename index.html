@@ -66,6 +66,14 @@
       z-index: 10000;
       transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
     }
+    #splash-screen .splash-logo {
+      width: 140px;
+      height: auto;
+      margin-bottom: 16px;
+      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.25));
+      user-select: none;
+      -webkit-user-drag: none;
+    }
     #splash-screen.hidden {
       opacity: 0;
       visibility: hidden;
@@ -674,6 +682,7 @@
 <body>
   <!-- Splash Screen -->
   <div id="splash-screen">
+    <img class="splash-logo" src="logo/planlogo.png" alt="Plan Logo" />
     <div class="splash-text">by JayathaSoft</div>
   </div>
   
