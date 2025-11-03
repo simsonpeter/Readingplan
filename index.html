@@ -916,12 +916,19 @@
       let chapterNum = 1;
 
       // Try English format - matches book abbreviation followed by chapter number
-      // Handles: "Mat.1", "Gen.1-3", "Mat.5:1-26", "1 Sam.1", "2 Cor.5", "Jer.30-31", etc.
+      // Handles: "Mat.1", "Gen.1-3", "Mat.5:1-26", "1 Sam.1", "2 Cor.5", "Jer.30-31", "Phm.1", etc.
       // Pattern: optional number + space + letters + period + chapter number (before dash or colon)
       const engMatch = ref.match(/^(\d+\s+)?([A-Za-z]+)\.(\d+)(?:[-:]|$)/);
       if (engMatch) {
         const numberPrefix = engMatch[1] ? engMatch[1].trim() : '';
-        const bookAbbrNoPeriod = engMatch[2]; // Without period
+        let bookAbbrNoPeriod = engMatch[2]; // Without period
+        
+        // Handle special cases to prevent confusion
+        // "Phm" should not be confused with "Phil"
+        if (bookAbbrNoPeriod.toLowerCase() === 'phm') {
+          bookAbbrNoPeriod = 'Phm'; // Keep as Phm, not Phil
+        }
+        
         chapterNum = parseInt(engMatch[3], 10);
         
         // Build full book key with period - must match BOOK_INDEX_MAP format exactly
@@ -1028,6 +1035,10 @@
               }
             } else {
               console.log('No abbrev map entry for:', bookKeyClean);
+              // Special check: prevent "phm" from matching "philippians"
+              if (bookKeyClean === 'phm') {
+                console.warn('⚠️ Phm abbreviation - ensuring it matches Philemon, not Philippians');
+              }
             }
             
             // NO loose matching at all - it causes false matches
