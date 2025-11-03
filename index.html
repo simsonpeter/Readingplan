@@ -238,6 +238,7 @@
     }
     .tabs {
       display: flex;
+      flex-wrap: nowrap;
       background: var(--card);
       border-bottom: 1px solid var(--border);
       position: sticky;
@@ -251,13 +252,17 @@
     }
     .tab-btn {
       flex: 1;
-      padding: 12px 0;
+      min-width: 0;
+      padding: 12px 4px;
       background: none;
       border: none;
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       font-weight: 600;
       color: #6c757d;
       cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .tab-btn.active {
       color: var(--accent);
