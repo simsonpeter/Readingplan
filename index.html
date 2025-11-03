@@ -2169,8 +2169,11 @@
           const isSelected = SELECTED_VERSES.has(verseKey);
           const selectedClass = isSelected ? 'verse-selected' : '';
           // Make words in verse clickable for dictionary lookup (only for Tamil)
-          console.log('Current language:', CURRENT_LANGUAGE, 'Current Bible:', CURRENT_BIBLE?.name);
-          const verseWithDictionary = CURRENT_LANGUAGE === 'tamil' ? makeWordsClickable(verseText) : verseText;
+          let verseWithDictionary = verseText;
+          if (CURRENT_LANGUAGE === 'tamil') {
+            console.log('🔍 Processing Tamil verse for dictionary words, DB loaded:', !!DICTIONARY_DB);
+            verseWithDictionary = makeWordsClickable(verseText);
+          }
           html += `<p data-verse-key="${verseKey}" class="${selectedClass}" 
             oncontextmenu="event.preventDefault(); return false;"
             ontouchstart="handleVerseTouchStart(event, '${verseKey}')"
@@ -2271,14 +2274,12 @@
     // Make Tamil words clickable for dictionary lookup
     function makeWordsClickable(text) {
       if (!DICTIONARY_DB) {
-        console.warn('Dictionary DB not loaded');
+        console.warn('⚠️ Dictionary DB not loaded yet');
         return text;
       }
-      if (!text || text.trim() === '') {
-        return text;
-      }
+      if (!text || text.trim() === '') return text;
       
-      console.log('Making words clickable, text length:', text.length, 'DB loaded:', !!DICTIONARY_DB);
+      console.log('🔍 Making words clickable, text length:', text.length, 'DB loaded:', !!DICTIONARY_DB);
       
       // Match Tamil words (3+ characters, avoiding punctuation and numbers)
       // Escape single quotes in the word for onclick attribute
@@ -2290,7 +2291,11 @@
           onmousedown="event.stopPropagation();">${match}</span>`;
       });
       
-      console.log('Words made clickable, matches found:', (result.match(/dictionary-word/g) || []).length);
+      const matches = text.match(/([\u0B80-\u0BFF]{3,})/g);
+      if (matches) {
+        console.log('✅ Found', matches.length, 'Tamil words to make clickable');
+      }
+      
       return result;
     }
     
