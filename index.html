@@ -890,8 +890,8 @@
 
       // Try English format - matches book abbreviation followed by chapter number
       // Handles: "Mat.1", "Gen.1-3", "Mat.5:1-26", "1 Sam.1", "2 Cor.5", etc.
-      // Pattern: optional number + space + letters + period + chapter number
-      const engMatch = ref.match(/^(\d+\s+)?([A-Za-z]+\.)(\d+)/);
+      // Pattern: optional number + space + letters + period + chapter number (before dash or colon)
+      const engMatch = ref.match(/^(\d+\s+)?([A-Za-z]+\.)(\d+)(?:[-:]|$)/);
       if (engMatch) {
         const numberPrefix = engMatch[1] ? engMatch[1].trim() : '';
         const bookAbbr = engMatch[2];
@@ -899,15 +899,15 @@
         
         // Build full book key with number prefix if present
         bookKey = numberPrefix ? numberPrefix + ' ' + bookAbbr : bookAbbr;
-        console.log('Parsed English reference:', bookKey, chapterNum);
+        console.log('Parsed English reference:', bookKey, 'chapter:', chapterNum);
       } else {
         // Try Tamil format (e.g., "ஆதி.1", "மத்.5:1-26", "1 சாமு.1")
-        const taMatch = ref.match(/^(\d+\s+)?([^\d\s]+?)\.(\d+)/);
+        const taMatch = ref.match(/^(\d+\s+)?([^\d\s]+?)\.(\d+)(?:[-:]|$)/);
         if (taMatch) {
           const numberPrefix = taMatch[1] ? taMatch[1].trim() : '';
           const taBook = taMatch[2] + '.';
           chapterNum = parseInt(taMatch[3], 10);
-          console.log('Parsed Tamil reference:', numberPrefix ? numberPrefix + ' ' + taBook : taBook, chapterNum);
+          console.log('Parsed Tamil reference:', numberPrefix ? numberPrefix + ' ' + taBook : taBook, 'chapter:', chapterNum);
           // Find English key from TAMIL_MAP
           for (const [en, ta] of Object.entries(TAMIL_MAP)) {
             // Match with or without number prefix
