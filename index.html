@@ -626,7 +626,7 @@
       width: 50px;
       padding: 12px;
       border-radius: 0;
-      font-size: 2.5rem;
+      font-size: 3rem;
       font-weight: 600;
       line-height: 1;
       cursor: pointer;
@@ -2425,6 +2425,12 @@
           prevBtn.style.display = 'none';
           nextBtn.style.display = 'none';
         }
+      }
+      
+      // Show/hide current chapter text only in Bible tab
+      const currentText = document.getElementById('nav-current-text');
+      if (currentText) {
+        currentText.style.display = view === 'bible' ? 'flex' : 'none';
       }
       
       if (view === 'calendar') {
