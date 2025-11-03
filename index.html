@@ -1459,11 +1459,22 @@
         }
         console.log('BOOK_INDEX_MAP built with', Object.keys(BOOK_INDEX_MAP).length, 'entries');
         console.log('Sample mappings:', Object.entries(BOOK_INDEX_MAP).slice(0, 15));
-        // Verify key abbreviations exist
-        const testKeys = ['Gen.', 'Mat.', 'Jer.', 'Phm.', 'Exo.'];
+        // Verify key abbreviations exist - especially check Phm vs Philippians
+        const testKeys = ['Gen.', 'Mat.', 'Jer.', 'Phm.', 'Exo.', 'Phil.'];
         testKeys.forEach(key => {
           if (BOOK_INDEX_MAP[key] !== undefined) {
-            console.log('✓', key, '-> index', BOOK_INDEX_MAP[key], '(', TAMIL_BOOK_NAMES[BOOK_INDEX_MAP[key]], ')');
+            const idx = BOOK_INDEX_MAP[key];
+            const bookName = TAMIL_BOOK_NAMES[idx];
+            console.log('✓', key, '-> index', idx, '(', bookName, ')');
+            // Special check: Phm should map to Philemon (index ~56), not Philippians
+            if (key === 'Phm.' && idx !== undefined) {
+              const expectedIdx = TAMIL_BOOK_NAMES.findIndex(n => n.includes('பிலேமோன்'));
+              if (idx !== expectedIdx) {
+                console.error('❌ WRONG MAPPING: Phm. maps to index', idx, 'but should map to', expectedIdx);
+              } else {
+                console.log('✅ Phm. correctly maps to Philemon at index', idx);
+              }
+            }
           } else {
             console.warn('✗', key, 'NOT in BOOK_INDEX_MAP');
           }
