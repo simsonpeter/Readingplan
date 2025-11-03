@@ -2158,10 +2158,15 @@
           const verseKey = `${bookIndex}-${chapterIndex}-${verseIndex}`;
           const isSelected = SELECTED_VERSES.has(verseKey);
           const selectedClass = isSelected ? 'verse-selected' : '';
-          // Verses are always clickable for selection
           // Make words in verse clickable for dictionary lookup (only for Tamil)
           const verseWithDictionary = CURRENT_LANGUAGE === 'tamil' ? makeWordsClickable(verseText) : verseText;
-          html += `<p data-verse-key="${verseKey}" class="${selectedClass}" onclick="handleVerseClick(event, '${verseKey}')" style="cursor: pointer; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; box-sizing: border-box;"><span class="verse-num">${verseNum}</span>${verseWithDictionary}</p>`;
+          html += `<p data-verse-key="${verseKey}" class="${selectedClass}" 
+            oncontextmenu="event.preventDefault(); return false;"
+            ontouchstart="handleVerseTouchStart(event, '${verseKey}')"
+            ontouchend="handleVerseTouchEnd(event, '${verseKey}')"
+            onmousedown="handleVerseMouseDown(event, '${verseKey}')"
+            onmouseup="handleVerseMouseUp(event, '${verseKey}')"
+            style="cursor: pointer; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; box-sizing: border-box; position: relative; user-select: none; -webkit-user-select: none;"><span class="verse-num">${verseNum}</span>${verseWithDictionary}</p>`;
         });
         display.innerHTML = html || (CURRENT_LANGUAGE === 'tamil' ? 'வசனங்கள் கிடைக்கவில்லை.' : 'No verses found.');
       }
