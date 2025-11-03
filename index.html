@@ -636,10 +636,11 @@
     }
     .dictionary-word {
       cursor: pointer;
+      color: var(--accent);
       text-decoration: underline;
       text-decoration-color: var(--accent);
       text-decoration-thickness: 2px;
-      transition: background 0.2s;
+      transition: all 0.2s;
       padding: 2px 4px;
       border-radius: 4px;
       position: relative;
@@ -648,10 +649,19 @@
       pointer-events: auto;
       user-select: none;
       -webkit-user-select: none;
+      font-weight: 500;
     }
     .dictionary-word:hover {
-      background: rgba(44, 90, 140, 0.25);
+      color: #2C5A8C;
+      background: rgba(44, 90, 140, 0.15);
       text-decoration-thickness: 3px;
+    }
+    .dark-mode .dictionary-word {
+      color: #4DA6FF;
+    }
+    .dark-mode .dictionary-word:hover {
+      color: #6BB5FF;
+      background: rgba(77, 166, 255, 0.2);
     }
     /* Ensure verse paragraphs allow pointer events on dictionary words */
     .verse-display p {
