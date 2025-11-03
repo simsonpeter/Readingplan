@@ -1383,54 +1383,31 @@
             const nameWithoutNum = name.replace(/^\d+\s+/, '').trim();
             const abbrWithoutNum = taAbbrClean.replace(/^\d+\s+/, '').trim();
             
-            // Try multiple matching strategies for Tamil text
-            // 1. Name starts with abbreviation (exact prefix match)
+            // Use STRICT matching only - abbreviation must be a clear prefix of the name
+            // This prevents false matches like "பிலேமோ" matching "பிரசங்கி"
+            
+            // 1. Exact prefix match (most reliable)
             if (nameWithoutNum.startsWith(abbrWithoutNum)) {
               return true;
             }
             
-            // 2. Abbreviation is a prefix of name (handles "சமு" -> "சாமுவேல்")
-            // Check if name starts with the first few chars of abbreviation
-            if (abbrWithoutNum.length >= 2) {
-              const abbrStart = abbrWithoutNum.substring(0, Math.min(2, abbrWithoutNum.length));
-              if (nameWithoutNum.startsWith(abbrStart)) {
+            // 2. For longer abbreviations (3+ chars), allow if name starts with abbreviation's first 3 chars
+            // This handles cases where abbreviation might be slightly different but still recognizable
+            if (abbrWithoutNum.length >= 3) {
+              const abbrFirst3 = abbrWithoutNum.substring(0, 3);
+              if (nameWithoutNum.startsWith(abbrFirst3)) {
                 return true;
               }
             }
             
-            // 3. Handle similar spellings - fuzzy matching for Tamil characters
-            // Example: "சமு" matches "சாமுவேல்", "ஓபதி" matches "ஒபதியா"
-            if (abbrWithoutNum.length >= 1 && nameWithoutNum.length >= 1) {
-              // Check if first character matches
-              if (abbrWithoutNum[0] === nameWithoutNum[0]) {
-                // First char matches, now check if abbreviation chars appear in name in order
-                // This handles cases like "சமு" in "சாமுவேல்" or "ஓபதி" in "ஒபதியா"
-                let abbrIdx = 0;
-                let consecutiveMatches = 0;
-                for (let i = 0; i < nameWithoutNum.length && abbrIdx < abbrWithoutNum.length; i++) {
-                  if (nameWithoutNum[i] === abbrWithoutNum[abbrIdx]) {
-                    abbrIdx++;
-                    consecutiveMatches++;
-                  } else if (abbrIdx > 0) {
-                    // Reset if we had matches but hit a non-match
-                    consecutiveMatches = 0;
-                  }
-                }
-                // If we matched at least 2 characters or all of abbreviation, it's a match
-                if (abbrIdx >= Math.min(abbrWithoutNum.length, 2) || consecutiveMatches >= 2) {
-                  return true;
-                }
-              }
-              
-              // 4. Try matching from different positions (for abbreviations that skip characters)
-              if (abbrWithoutNum.length >= 2) {
-                // Check if first 2 chars of abbreviation appear anywhere in name
-                const firstTwo = abbrWithoutNum.substring(0, 2);
-                if (nameWithoutNum.includes(firstTwo)) {
-                  return true;
-                }
-              }
+            // 3. For short abbreviations (2 chars), only match if name starts with those 2 chars
+            // This is more restrictive to prevent false matches
+            if (abbrWithoutNum.length === 2 && nameWithoutNum.startsWith(abbrWithoutNum)) {
+              return true;
             }
+            
+            // REMOVED: Fuzzy matching that was causing false positives
+            // Old logic would match "பிலேமோ" to "பிரசங்கி" because of loose character matching
             
             return false;
           });
