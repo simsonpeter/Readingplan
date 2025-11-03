@@ -1408,10 +1408,15 @@
           if (bookIndex !== -1) {
             BOOK_INDEX_MAP[enAbbr] = bookIndex;
           } else {
-            // Silently skip - unmapped books will use fallback search by English name
-            // No need to log as this is expected behavior for some abbreviations
+            // Log unmapped books for debugging (only for common ones)
+            const commonAbbrs = ['Gen.', 'Exo.', 'Lev.', 'Num.', 'Deu.', 'Mat.', 'Mar.', 'Luk.', 'John.'];
+            if (commonAbbrs.includes(enAbbr)) {
+              console.warn('Could not map book:', enAbbr, '->', taAbbr);
+            }
           }
         }
+        console.log('BOOK_INDEX_MAP built with', Object.keys(BOOK_INDEX_MAP).length, 'entries');
+        console.log('Sample mappings:', Object.entries(BOOK_INDEX_MAP).slice(0, 10));
 
         READING_PLAN_TA = READING_PLAN_EN.map(day => ({
           morning: day.morning.map(r => {
