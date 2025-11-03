@@ -68,19 +68,29 @@
     }
     #splash-screen .splash-logo {
       width: 140px;
-      height: auto;
+      height: 140px;
       margin-bottom: 16px;
-      /* Stronger multi-layer shadow to make white logo readable on gradient */
-      filter:
-        drop-shadow(0 2px 2px rgba(0,0,0,0.30))
-        drop-shadow(0 0 10px rgba(0,0,0,0.40))
-        drop-shadow(0 0 18px rgba(0,0,0,0.35));
+      border-radius: 50%;
+      object-fit: cover;
+      /* Outer border before inner circle */
+      border: 8px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 
+        0 0 0 4px rgba(255, 255, 255, 0.6),
+        0 8px 32px rgba(0, 0, 0, 0.3);
       user-select: none;
       -webkit-user-drag: none;
-      /* Keep natural colors so white text stays bright */
-      mix-blend-mode: normal;
-      opacity: 1;
-      background: transparent;
+      /* Smooth transition for hover effect */
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+      /* Animation on load */
+      animation: splashFadeIn 1s ease-out;
+    }
+    /* Hover effect for splash logo */
+    #splash-screen .splash-logo:hover {
+      transform: scale(1.1);
+      box-shadow: 
+        0 0 0 4px rgba(255, 255, 255, 0.8),
+        0 12px 40px rgba(0, 0, 0, 0.4);
     }
     #splash-screen.hidden {
       opacity: 0;
@@ -690,7 +700,7 @@
 <body>
   <!-- Splash Screen -->
   <div id="splash-screen">
-    <img class="splash-logo" src="icons/planlogo.png" alt="Plan Logo" />
+    <img class="splash-logo" src="icons/play_store_512.png" alt="App Logo" />
     <div class="splash-text">by JayathaSoft</div>
   </div>
   
