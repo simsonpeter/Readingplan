@@ -258,6 +258,12 @@
       flex-direction: column;
       gap: 16px;
       height: 100%;
+      padding-top: 0; /* Already has padding from .content */
+      scroll-margin-top: 120px; /* Account for sticky title bar + tabs */
+    }
+    /* Ensure date card is visible after navigation */
+    #today-view #date-card {
+      scroll-margin-top: 120px;
     }
     .card {
       background: var(--card);
@@ -2605,6 +2611,27 @@
       document.getElementById('today-view').style.display = view === 'today' ? 'flex' : 'none';
       document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
       document.getElementById('bible-view').style.display = view === 'bible' ? 'block' : 'none';
+      
+      // If switching to today view, scroll to top to show date card properly
+      if (view === 'today') {
+        setTimeout(() => {
+          const todayView = document.getElementById('today-view');
+          if (todayView) {
+            // Scroll the content area (parent) to show the date card
+            const content = todayView.closest('.content');
+            if (content) {
+              content.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            // Also scroll window if needed
+            const dateCard = document.getElementById('date-card');
+            if (dateCard) {
+              dateCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              // Account for sticky header
+              window.scrollTo({ top: Math.max(0, dateCard.offsetTop - 120), behavior: 'smooth' });
+            }
+          }
+        }, 50);
+      }
       
       // Show/hide bottom bar buttons based on active tab
       const markReadBtn = document.getElementById('mark-read-btn');
