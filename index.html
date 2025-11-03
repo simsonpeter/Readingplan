@@ -722,10 +722,10 @@
       <i class="fas fa-check-circle"></i> Mark Read
     </button>
     <button class="nav-btn-bottom" id="prev-chap-btn" onclick="navigateChapter(-1)">
-      <i class="fas fa-chevron-left"></i> Prev
+      <i class="fas fa-chevron-left"></i> <span id="prev-btn-text"></span>
     </button>
     <button class="nav-btn-bottom" id="next-chap-btn" onclick="navigateChapter(1)">
-      Next <i class="fas fa-chevron-right"></i>
+      <span id="next-btn-text"></span> <i class="fas fa-chevron-right"></i>
     </button>
     <button class="share-btn" onclick="shareReadings()">
       <i class="fas fa-share-alt"></i> Share
@@ -1517,8 +1517,69 @@
       
       if (autoLoadVerses) {
         loadVerses();
+      } else {
+        updateNavButtons();
       }
     }
+    
+    function updateNavButtons() {
+      if (!CURRENT_BIBLE) return;
+      const bookSelect = document.getElementById('book-select');
+      const chapterSelect = document.getElementById('chapter-select');
+      const prevBtnText = document.getElementById('prev-btn-text');
+      const nextBtnText = document.getElementById('next-btn-text');
+      
+      if (!bookSelect || !chapterSelect || !prevBtnText || !nextBtnText) return;
+      
+      const currentBookIndex = parseInt(bookSelect.value);
+      const currentChapterIndex = parseInt(chapterSelect.value);
+      
+      if (isNaN(currentBookIndex) || isNaN(currentChapterIndex)) return;
+      
+      // Calculate previous chapter
+      let prevBookIndex = currentBookIndex;
+      let prevChapterIndex = currentChapterIndex - 1;
+      if (prevChapterIndex < 0) {
+        prevBookIndex = currentBookIndex - 1;
+        if (prevBookIndex >= 0) {
+          prevChapterIndex = CURRENT_BIBLE.books[prevBookIndex].chapters.length - 1;
+        } else {
+          prevBookIndex = -1;
+        }
+      }
+      
+      // Calculate next chapter
+      let nextBookIndex = currentBookIndex;
+      let nextChapterIndex = currentChapterIndex + 1;
+      const currentTotalChapters = CURRENT_BIBLE.books[currentBookIndex].chapters.length;
+      if (nextChapterIndex >= currentTotalChapters) {
+        nextBookIndex = currentBookIndex + 1;
+        if (nextBookIndex < CURRENT_BIBLE.books.length) {
+          nextChapterIndex = 0;
+        } else {
+          nextBookIndex = -1;
+        }
+      }
+      
+      // Update previous button
+      if (prevBookIndex >= 0) {
+        const prevBookName = CURRENT_BIBLE.books[prevBookIndex].name;
+        const prevChapterNum = prevChapterIndex + 1;
+        prevBtnText.textContent = `< ${prevBookName} ${prevChapterNum}`;
+      } else {
+        prevBtnText.textContent = '';
+      }
+      
+      // Update next button
+      if (nextBookIndex >= 0) {
+        const nextBookName = CURRENT_BIBLE.books[nextBookIndex].name;
+        const nextChapterNum = nextChapterIndex + 1;
+        nextBtnText.textContent = `${nextBookName} ${nextChapterNum} >`;
+      } else {
+        nextBtnText.textContent = '';
+      }
+    }
+    
     function loadVerses() {
       const bookIndex = document.getElementById('book-select').value;
       const chapterIndex = document.getElementById('chapter-select').value;
@@ -2162,6 +2223,7 @@
         chapterSelect.value = newChapterIndex;
       }
       loadVerses();
+      updateNavButtons();
     }
 
     // === CORE APP FUNCTIONS (theme, calendar, etc.) ===
