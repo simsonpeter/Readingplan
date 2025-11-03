@@ -82,8 +82,24 @@
       /* Smooth transition for hover effect */
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       cursor: pointer;
-      /* Animation on load */
-      animation: splashFadeIn 1s ease-out;
+      /* Logo animation - scale and fade in */
+      animation: logoAppear 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    /* Logo animation keyframes */
+    @keyframes logoAppear {
+      0% {
+        opacity: 0;
+        transform: scale(0.5) translateY(-20px);
+      }
+      50% {
+        transform: scale(1.1) translateY(0);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
     }
     /* Hover effect for splash logo */
     #splash-screen .splash-logo:hover {
@@ -102,8 +118,20 @@
       font-size: 1.1rem;
       font-weight: 500;
       letter-spacing: 0.5px;
-      animation: splashFadeIn 1s ease-out;
+      animation: textFlyUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.6s forwards;
       text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      opacity: 0;
+      transform: translateY(60px);
+    }
+    @keyframes textFlyUp {
+      from {
+        opacity: 0;
+        transform: translateY(60px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     @keyframes splashFadeIn {
       from {
