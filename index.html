@@ -878,29 +878,46 @@
       }
 
       // Extract book and chapter
-      // Handle formats like: "Mat.1", "Gen.1-3", "Mat.5:1-26"
+      // Handle formats like: "Mat.1", "Gen.1-3", "Mat.5:1-26", "1 Sam.1", "2 Cor.5"
       let bookKey = '';
       let chapterNum = 1;
 
       // Try English format - matches book abbreviation followed by chapter number
-      // Handles: "Mat.1", "Gen.1-3", "Mat.5:1-26", etc.
-      const engMatch = ref.match(/^([A-Za-z]+\.)(\d+)/);
+      // Handles: "Mat.1", "Gen.1-3", "Mat.5:1-26", "1 Sam.1", "2 Cor.5", etc.
+      // Pattern: optional number + space + letters + period + chapter number
+      const engMatch = ref.match(/^(\d+\s+)?([A-Za-z]+\.)(\d+)/);
       if (engMatch) {
-        bookKey = engMatch[1];
-        chapterNum = parseInt(engMatch[2], 10);
+        const numberPrefix = engMatch[1] ? engMatch[1].trim() : '';
+        const bookAbbr = engMatch[2];
+        chapterNum = parseInt(engMatch[3], 10);
+        
+        // Build full book key with number prefix if present
+        bookKey = numberPrefix ? numberPrefix + ' ' + bookAbbr : bookAbbr;
         console.log('Parsed English reference:', bookKey, chapterNum);
       } else {
-        // Try Tamil format (e.g., "ஆதி.1", "மத்.5:1-26")
-        const taMatch = ref.match(/^([^\d\s]+?)\.(\d+)/);
+        // Try Tamil format (e.g., "ஆதி.1", "மத்.5:1-26", "1 சாமு.1")
+        const taMatch = ref.match(/^(\d+\s+)?([^\d\s]+?)\.(\d+)/);
         if (taMatch) {
-          const taBook = taMatch[1] + '.';
-          chapterNum = parseInt(taMatch[2], 10);
-          console.log('Parsed Tamil reference:', taBook, chapterNum);
+          const numberPrefix = taMatch[1] ? taMatch[1].trim() : '';
+          const taBook = taMatch[2] + '.';
+          chapterNum = parseInt(taMatch[3], 10);
+          console.log('Parsed Tamil reference:', numberPrefix ? numberPrefix + ' ' + taBook : taBook, chapterNum);
           // Find English key from TAMIL_MAP
           for (const [en, ta] of Object.entries(TAMIL_MAP)) {
-            if (ta === taBook) {
+            // Match with or without number prefix
+            const taWithNum = numberPrefix ? numberPrefix + ' ' + ta : ta;
+            if (ta === taBook || taWithNum === (numberPrefix + ' ' + taBook)) {
               bookKey = en;
               break;
+            }
+          }
+          // If still not found, try matching just the Tamil book part
+          if (!bookKey) {
+            for (const [en, ta] of Object.entries(TAMIL_MAP)) {
+              if (ta === taBook) {
+                bookKey = en;
+                break;
+              }
             }
           }
         }
