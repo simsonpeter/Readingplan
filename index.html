@@ -73,6 +73,10 @@
       filter: drop-shadow(0 6px 18px rgba(0,0,0,0.25));
       user-select: none;
       -webkit-user-drag: none;
+      /* Visually remove white background from non-transparent PNGs */
+      mix-blend-mode: multiply;
+      opacity: 0.95;
+      background: transparent;
     }
     #splash-screen.hidden {
       opacity: 0;
