@@ -722,12 +722,9 @@
     <button class="progress-btn" id="mark-read-btn" onclick="markAsRead()">
       <i class="fas fa-check-circle"></i> Mark Read
     </button>
-    <button class="nav-btn-bottom" id="prev-chap-btn" onclick="navigateChapter(-1)">
-      <span id="prev-btn-text"></span>
-    </button>
-    <button class="nav-btn-bottom" id="next-chap-btn" onclick="navigateChapter(1)">
-      <span id="next-btn-text"></span>
-    </button>
+    <button class="nav-btn-bottom" id="prev-chap-btn" onclick="navigateChapter(-1)">‹</button>
+    <div class="nav-current-chapter" id="nav-current-text"></div>
+    <button class="nav-btn-bottom" id="next-chap-btn" onclick="navigateChapter(1)">›</button>
     <button class="share-btn" onclick="shareReadings()">
       <i class="fas fa-share-alt"></i> Share
     </button>
@@ -1604,60 +1601,23 @@
       if (!CURRENT_BIBLE) return;
       const bookSelect = document.getElementById('book-select');
       const chapterSelect = document.getElementById('chapter-select');
-      const prevBtnText = document.getElementById('prev-btn-text');
-      const nextBtnText = document.getElementById('next-btn-text');
+      const currentText = document.getElementById('nav-current-text');
       
-      if (!bookSelect || !chapterSelect || !prevBtnText || !nextBtnText) return;
+      if (!bookSelect || !chapterSelect || !currentText) return;
       
       const currentBookIndex = parseInt(bookSelect.value);
       const currentChapterIndex = parseInt(chapterSelect.value);
       
-      if (isNaN(currentBookIndex) || isNaN(currentChapterIndex)) return;
-      
-      // Calculate previous chapter
-      let prevBookIndex = currentBookIndex;
-      let prevChapterIndex = currentChapterIndex - 1;
-      if (prevChapterIndex < 0) {
-        prevBookIndex = currentBookIndex - 1;
-        if (prevBookIndex >= 0) {
-          prevChapterIndex = CURRENT_BIBLE.books[prevBookIndex].chapters.length - 1;
-        } else {
-          prevBookIndex = -1;
-        }
+      if (isNaN(currentBookIndex) || isNaN(currentChapterIndex)) {
+        currentText.textContent = '';
+        return;
       }
       
-      // Calculate next chapter
-      let nextBookIndex = currentBookIndex;
-      let nextChapterIndex = currentChapterIndex + 1;
-      const currentTotalChapters = CURRENT_BIBLE.books[currentBookIndex].chapters.length;
-      if (nextChapterIndex >= currentTotalChapters) {
-        nextBookIndex = currentBookIndex + 1;
-        if (nextBookIndex < CURRENT_BIBLE.books.length) {
-          nextChapterIndex = 0;
-        } else {
-          nextBookIndex = -1;
-        }
-      }
-      
-      // Update previous button: <abbrev.chapter> format (e.g., <gen.1)
-      if (prevBookIndex >= 0) {
-        const prevBookName = CURRENT_BIBLE.books[prevBookIndex].name;
-        const prevBookAbbrev = abbreviateBookName(prevBookName);
-        const prevChapterNum = prevChapterIndex + 1;
-        prevBtnText.textContent = `<${prevBookAbbrev}${prevChapterNum}`;
-      } else {
-        prevBtnText.textContent = '';
-      }
-      
-      // Update next button: <abbrev.chapter> format (e.g., gen.2>)
-      if (nextBookIndex >= 0) {
-        const nextBookName = CURRENT_BIBLE.books[nextBookIndex].name;
-        const nextBookAbbrev = abbreviateBookName(nextBookName);
-        const nextChapterNum = nextChapterIndex + 1;
-        nextBtnText.textContent = `${nextBookAbbrev}${nextChapterNum}>`;
-      } else {
-        nextBtnText.textContent = '';
-      }
+      // Update current chapter display: Gen.1 format
+      const currentBookName = CURRENT_BIBLE.books[currentBookIndex].name;
+      const currentBookAbbrev = abbreviateBookName(currentBookName);
+      const currentChapterNum = currentChapterIndex + 1;
+      currentText.textContent = `${currentBookAbbrev}${currentChapterNum}`;
     }
     
     function loadVerses() {
