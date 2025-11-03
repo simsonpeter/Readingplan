@@ -354,8 +354,7 @@
       margin-top: 4px;
     }
     #calendar-view,
-    #bible-view,
-    #about-view {
+    #bible-view {
       display: none;
       flex: 1;
       overflow-y: auto;
@@ -937,81 +936,6 @@
       </div>
     </div>
     <div id="calendar-view"></div>
-    <div id="about-view">
-      <div class="card" style="max-width: 800px; margin: 0 auto;">
-        <h2 style="color: var(--accent); margin-bottom: 20px; font-size: 1.8rem;">
-          <i class="fas fa-info-circle"></i> About JOURNEY
-        </h2>
-        <div style="line-height: 1.8; color: var(--text);">
-          <p style="margin-bottom: 16px; font-size: 1.05rem;">
-            <strong>JOURNEY</strong> is a comprehensive Bible reading application designed to help you engage with God's Word daily. 
-            This app provides a structured one-year Bible reading plan with daily morning and evening readings.
-          </p>
-          
-          <h3 style="color: var(--accent); margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem;">
-            <i class="fas fa-book"></i> Features
-          </h3>
-          <ul style="margin-left: 20px; margin-bottom: 20px;">
-            <li style="margin-bottom: 8px;">📖 <strong>Multiple Bible Translations:</strong> Read in Tamil, English, and Dutch</li>
-            <li style="margin-bottom: 8px;">📅 <strong>Daily Reading Plan:</strong> Structured morning and evening readings</li>
-            <li style="margin-bottom: 8px;">🔍 <strong>Bible Search:</strong> Search across all books, Old Testament, New Testament, or specific books</li>
-            <li style="margin-bottom: 8px;">📚 <strong>Tamil Dictionary:</strong> Tap on Tamil words to see their meanings and definitions</li>
-            <li style="margin-bottom: 8px;">📊 <strong>Progress Tracking:</strong> Mark your reading progress and track your journey</li>
-            <li style="margin-bottom: 8px;">📤 <strong>Share Verses:</strong> Share your favorite verses with beautiful images</li>
-            <li style="margin-bottom: 8px;">🌙 <strong>Dark Mode:</strong> Comfortable reading in light or dark theme</li>
-            <li style="margin-bottom: 8px;">📱 <strong>Offline Support:</strong> Works offline once installed as a Progressive Web App</li>
-            <li style="margin-bottom: 8px;">🔄 <strong>Parallel Reading:</strong> Compare verses side-by-side in different languages</li>
-          </ul>
-          
-          <h3 style="color: var(--accent); margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem;">
-            <i class="fas fa-code"></i> Technology
-          </h3>
-          <p style="margin-bottom: 16px;">
-            JOURNEY is built as a Progressive Web App (PWA), which means it can be installed on your device 
-            and works offline. It uses modern web technologies to provide a fast, responsive experience 
-            across all devices.
-          </p>
-          
-          <h3 style="color: var(--accent); margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem;">
-            <i class="fas fa-users"></i> About JayathaSoft
-          </h3>
-          <p style="margin-bottom: 16px;">
-            JOURNEY is developed by <strong>JayathaSoft</strong>, committed to creating quality Christian 
-            software applications that help believers grow in their faith through the study of God's Word.
-          </p>
-          
-          <h3 style="color: var(--accent); margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem;">
-            <i class="fas fa-book-open"></i> Bible Sources
-          </h3>
-          <p style="margin-bottom: 8px;">
-            <strong>Tamil Bible:</strong> Tamil Bible translation used in this app.
-          </p>
-          <p style="margin-bottom: 8px;">
-            <strong>English Bible:</strong> Standard English Bible translation.
-          </p>
-          <p style="margin-bottom: 8px;">
-            <strong>Dutch Bible:</strong> Statenvertaling (SVV) - Dutch Bible translation.
-          </p>
-          <p style="margin-bottom: 16px;">
-            <strong>Tamil Dictionary:</strong> சத்திய வேதாகமப் பெயர் அகராதி by ஆர். என். ஆசீர்வாதம் (1975)
-          </p>
-          
-          <h3 style="color: var(--accent); margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem;">
-            <i class="fas fa-heart"></i> Our Mission
-          </h3>
-          <p style="margin-bottom: 16px;">
-            Our mission is to make Bible reading accessible, enjoyable, and meaningful for everyone. 
-            We believe that daily engagement with Scripture is essential for spiritual growth, and 
-            JOURNEY is designed to make that journey easier and more enriching.
-          </p>
-          
-          <div style="margin-top: 32px; padding-top: 20px; border-top: 2px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
-            <p style="margin-bottom: 8px;">© 2025 JayathaSoft. All rights reserved.</p>
-            <p>Version 1.0</p>
-          </div>
-        </div>
-      </div>
-    </div>
     <div id="bible-view">
       <div class="selector-row" style="margin-bottom: 8px; gap: 8px; margin-top: 8px;">
         <select id="bible-language-select" onchange="switchBibleLanguage()" style="flex: 1; min-width: 140px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; display: none; appearance: none; background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'white\'%3E%3Cpath d=\'M7 10l5 5 5-5z\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 8px center; background-size: 20px; padding-right: 35px;">
