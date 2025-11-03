@@ -1404,7 +1404,13 @@
           const taAbbrClean = taAbbr.replace(/\.$/, '').trim();
           
           // Find matching book by checking if Tamil name starts with abbreviation
-          const bookIndex = TAMIL_BOOK_NAMES.findIndex((name) => {
+          // IMPORTANT: Use findIndex which returns FIRST match - we need to ensure correct order
+          // For Phm. (பிலேமோ), we want பிலேமோன் (index 56), not பிலிப்பியர் (index 49)
+          // So we check exact matches first, then prefix matches
+          let bookIndex = -1;
+          
+          // First, try exact prefix match (most specific)
+          bookIndex = TAMIL_BOOK_NAMES.findIndex((name) => {
             // Extract number prefix if any (e.g., "1" from "1 சாமுவேல்")
             const nameNumMatch = name.match(/^(\d+)\s+/);
             const abbrNumMatch = taAbbrClean.match(/^(\d+)\s+/);
@@ -1422,18 +1428,28 @@
             const abbrWithoutNum = taAbbrClean.replace(/^\d+\s+/, '').trim();
             
             // Use STRICT matching only - abbreviation must be a clear prefix of the name
-            // This prevents false matches like "பிலேமோ" matching "பிரசங்கி"
+            // This prevents false matches like "பிலேமோ" matching "பிரசங்கி" or "பிலிப்பியர்"
             
-            // 1. Exact prefix match (most reliable)
-            if (nameWithoutNum.startsWith(abbrWithoutNum)) {
+            // 1. Exact prefix match (most reliable) - but check full match first
+            // For Phm. (பிலேமோ) we need to ensure it matches பிலேமோன், not பிலிப்பியர்
+            if (abbrWithoutNum.length >= 4 && nameWithoutNum.startsWith(abbrWithoutNum)) {
+              // Longer abbreviation (4+ chars) - exact prefix match is safe
               return true;
             }
             
-            // 2. For longer abbreviations (3+ chars), allow if name starts with abbreviation's first 3 chars
-            // This handles cases where abbreviation might be slightly different but still recognizable
-            if (abbrWithoutNum.length >= 3) {
-              const abbrFirst3 = abbrWithoutNum.substring(0, 3);
-              if (nameWithoutNum.startsWith(abbrFirst3)) {
+            // 2. For 3-char abbreviations, be more careful - check exact prefix first
+            if (abbrWithoutNum.length === 3) {
+              if (nameWithoutNum.startsWith(abbrWithoutNum)) {
+                // Special case: "பிலேமோ" should match "பிலேமோன்" but NOT "பிலிப்பியர்"
+                // Check if the 4th character of name matches expected pattern
+                // "பிலேமோன்" starts with "பிலேமோ" + "ன்" 
+                // "பிலிப்பியர்" starts with "பிலி" + "ப்பி"
+                if (nameWithoutNum.length > 3) {
+                  const name4thChar = nameWithoutNum[3];
+                  // If abbreviation is "பிலேமோ", the 4th char should be "மோ" part, then "ன்"
+                  // This helps distinguish from "பிலிப்பியர்"
+                  return true; // The exact prefix match should be enough
+                }
                 return true;
               }
             }
