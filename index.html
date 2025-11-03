@@ -993,9 +993,14 @@
               // Check if this book name exactly matches the mapped full name (case-insensitive check)
               if (bookName === fullName) {
                 bookIndex = i;
-                console.log('Fallback match found (abbrev map - exact):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+                console.log('✓ Fallback match found (abbrev map - exact):', bookKey, '(' + bookKeyClean + ') ->', CURRENT_BIBLE.books[i].name, 'at index', i);
                 break;
+              } else {
+                // Debug: log what we're comparing
+                console.log('Comparing:', bookName, '===', fullName, '?', bookName === fullName, 'for abbrev:', bookKeyClean);
               }
+            } else {
+              console.log('No abbrev map entry for:', bookKeyClean);
             }
             
             // NO loose matching at all - it causes false matches
