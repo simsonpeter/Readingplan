@@ -656,9 +656,14 @@
     /* Ensure verse paragraphs allow pointer events on dictionary words */
     .verse-display p {
       pointer-events: auto;
+      touch-action: manipulation; /* Prevent double-tap zoom on mobile */
     }
     .verse-display p .dictionary-word {
       pointer-events: auto;
+    }
+    /* Visual feedback for long press */
+    .verse-display p:active:not(.dictionary-word) {
+      opacity: 0.7;
     }
     .parallel-lang-modal {
       position: fixed;
@@ -2311,21 +2316,92 @@
       modal.classList.remove('active');
     }
     
-    // Handle verse click - check if clicking on dictionary word or verse selection
-    function handleVerseClick(event, verseKey) {
-      // Check if click is on or inside a dictionary word
-      const clickedElement = event.target;
-      if (clickedElement.classList.contains('dictionary-word') || 
-          clickedElement.closest('.dictionary-word')) {
-        // Dictionary word click - don't select verse
-        event.stopPropagation();
-        return false;
+    // === LONG PRESS HANDLING FOR VERSE SELECTION ===
+    let longPressTimer = null;
+    let longPressTarget = null;
+    const LONG_PRESS_DURATION = 500; // 500ms for long press
+    
+    function handleVerseTouchStart(event, verseKey) {
+      // Don't trigger if clicking on dictionary word
+      if (event.target.classList.contains('dictionary-word') || 
+          event.target.closest('.dictionary-word')) {
+        return;
       }
-      // Otherwise, toggle verse selection
-      event.stopPropagation();
-      toggleVerseSelectionByKey(verseKey);
-      return false;
+      
+      longPressTarget = verseKey;
+      longPressTimer = setTimeout(() => {
+        // Long press detected - select verse
+        toggleVerseSelectionByKey(verseKey);
+        // Provide haptic feedback if available
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+        // Show visual feedback
+        const verseElement = document.querySelector(`[data-verse-key="${verseKey}"]`);
+        if (verseElement) {
+          verseElement.style.transform = 'scale(0.98)';
+          setTimeout(() => {
+            verseElement.style.transform = '';
+          }, 150);
+        }
+        longPressTimer = null;
+        longPressTarget = null;
+      }, LONG_PRESS_DURATION);
     }
+    
+    function handleVerseTouchEnd(event, verseKey) {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+        longPressTarget = null;
+      }
+    }
+    
+    function handleVerseMouseDown(event, verseKey) {
+      // Only handle mouse events on desktop (not touch devices)
+      if ('ontouchstart' in window) {
+        return;
+      }
+      
+      // Don't trigger if clicking on dictionary word
+      if (event.target.classList.contains('dictionary-word') || 
+          event.target.closest('.dictionary-word')) {
+        return;
+      }
+      
+      longPressTarget = verseKey;
+      longPressTimer = setTimeout(() => {
+        // Long press detected - select verse
+        toggleVerseSelectionByKey(verseKey);
+        longPressTimer = null;
+        longPressTarget = null;
+      }, LONG_PRESS_DURATION);
+    }
+    
+    function handleVerseMouseUp(event, verseKey) {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+        longPressTarget = null;
+      }
+    }
+    
+    // Cancel long press if user moves mouse/touch away
+    document.addEventListener('mouseup', () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+        longPressTarget = null;
+      }
+    });
+    
+    document.addEventListener('touchend', () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+        longPressTarget = null;
+      }
+    });
     
     // Verse selection functions - verses are always clickable for selection
     function toggleVerseSelectionByKey(verseKey) {
