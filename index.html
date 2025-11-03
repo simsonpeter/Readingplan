@@ -935,10 +935,12 @@
         return;
       }
 
-      // Find book index using BOOK_INDEX_MAP
+      // Find book index using BOOK_INDEX_MAP (primary method)
       let bookIndex = BOOK_INDEX_MAP[bookKey];
       
-      // If not found, try improved fallback matching
+      console.log('Looking for bookKey:', bookKey, 'in BOOK_INDEX_MAP:', bookIndex !== undefined ? 'FOUND at index ' + bookIndex : 'NOT FOUND');
+      
+      // If not found in BOOK_INDEX_MAP, only then try fallback matching
       if (bookIndex === undefined && CURRENT_BIBLE) {
         const bookKeyClean = bookKey.toLowerCase().replace(/\.$/, '').trim();
         const bookKeyParts = bookKeyClean.split(' ');
