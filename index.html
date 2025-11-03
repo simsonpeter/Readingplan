@@ -966,49 +966,45 @@
               break;
             }
           } else if (!bookNumMatch && !nameNumMatch) {
-            // Neither has numbers - match abbreviation to book name start
-            // Create abbreviation mapping for common books
+            // Neither has numbers - use comprehensive abbreviation mapping
             const abbrevMap = {
-              'gen': 'genesis',
-              'exo': 'exodus',
-              'lev': 'leviticus',
-              'num': 'numbers',
-              'deu': 'deuteronomy',
-              'jos': 'joshua',
-              'judg': 'judges',
-              'mat': 'matthew',
-              'mar': 'mark',
-              'luk': 'luke',
-              'john': 'john',
-              'act': 'acts',
-              'rom': 'romans',
-              'gal': 'galatians',
-              'eph': 'ephesians',
-              'phil': 'philippians',
-              'col': 'colossians',
-              'tit': 'titus',
-              'phm': 'philemon',
-              'heb': 'hebrews',
-              'jam': 'james',
-              'jude': 'jude',
-              'rev': 'revelation'
+              'gen': 'genesis', 'exo': 'exodus', 'lev': 'leviticus', 'num': 'numbers',
+              'deu': 'deuteronomy', 'jos': 'joshua', 'judg': 'judges', 'ruth': 'ruth',
+              'mat': 'matthew', 'mar': 'mark', 'luk': 'luke', 'john': 'john',
+              'act': 'acts', 'rom': 'romans', 'gal': 'galatians', 'eph': 'ephesians',
+              'phil': 'philippians', 'col': 'colossians', 'tit': 'titus', 'phm': 'philemon',
+              'heb': 'hebrews', 'jam': 'james', 'jude': 'jude', 'rev': 'revelation',
+              'sam': 'samuel', 'king': 'kings', 'chro': 'chronicles', 'ezra': 'ezra',
+              'neh': 'nehemiah', 'esth': 'esther', 'job': 'job', 'psa': 'psalms',
+              'pro': 'proverbs', 'ecc': 'ecclesiastes', 'song': 'song', 'isa': 'isaiah',
+              'jer': 'jeremiah', 'lam': 'lamentations', 'ezek': 'ezekiel', 'dan': 'daniel',
+              'hos': 'hosea', 'joel': 'joel', 'amos': 'amos', 'obad': 'obadiah',
+              'jonah': 'jonah', 'mic': 'micah', 'nah': 'nahum', 'hab': 'habakkuk',
+              'zep': 'zephaniah', 'hag': 'haggai', 'zach': 'zechariah', 'mal': 'malachi'
             };
             
-            // Check if abbreviation maps to book name
+            // Check if abbreviation maps to book name - STRICT matching only
             const fullName = abbrevMap[bookKeyClean];
-            if (fullName && bookName.startsWith(fullName)) {
+            if (fullName && bookName === fullName) {
               bookIndex = i;
-              console.log('Fallback match found (abbrev map):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+              console.log('Fallback match found (abbrev map - exact):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
               break;
             }
             
-            // Fallback: match abbreviation to book name start
-            if (bookName.startsWith(bookKeyClean) || 
-                (bookKeyClean.length >= 3 && bookName.includes(bookKeyClean)) ||
-                (nameParts.length > 0 && nameParts[0].startsWith(bookKeyClean))) {
-              bookIndex = i;
-              console.log('Fallback match found:', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
-              break;
+            // Only try loose matching if abbreviation is at least 3 chars and we haven't found a match
+            if (bookKeyClean.length >= 3) {
+              // Check if book name starts with abbreviation
+              if (bookName.startsWith(bookKeyClean)) {
+                bookIndex = i;
+                console.log('Fallback match found (starts with):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+                break;
+              }
+              // Check first word of book name
+              if (nameParts.length > 0 && nameParts[0].startsWith(bookKeyClean)) {
+                bookIndex = i;
+                console.log('Fallback match found (first word):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+                break;
+              }
             }
           }
         }
