@@ -855,6 +855,22 @@
       </div>
     </div>
   </div>
+  
+  <!-- Dictionary Modal -->
+  <div id="dictionary-modal" class="dictionary-modal" onclick="if(event.target.id === 'dictionary-modal') closeDictionary()">
+    <div class="dictionary-modal-content" onclick="event.stopPropagation()">
+      <div class="dictionary-modal-header">
+        <div class="dictionary-modal-title" id="dictionary-title">📖 அகராதி</div>
+        <button class="dictionary-close-btn" onclick="closeDictionary()" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="dictionary-content" id="dictionary-content">
+        Loading...
+      </div>
+    </div>
+  </div>
+  
   <div class="bottom-bar">
     <button class="progress-btn" id="mark-read-btn" onclick="markAsRead()">
       <i class="fas fa-check-circle"></i> Mark Read
@@ -887,6 +903,7 @@
     let READING_PLAN_TA = [];
     let TAMIL_MAP = {};
     let BOOK_INDEX_MAP = {}; // Maps English abbreviations to book indices
+    let DICTIONARY_DB = null; // SQLite dictionary database
     const TAMIL_BOOK_NAMES = [
       "ஆதியாகமம்", "யாத்திராகமம்", "லேவியராகமம்", "எண்ணாகமம்", "உபாகமம்", "யோசுவா", "நியாயாதிபதிகள்", "ரூத்", "1 சாமுவேல்",
       "2 சாமுவேல்", "1 இராஜாக்கள்", "2 இராஜாக்கள்", "1 நாளாகமம்", "2 நாளாகமம்", "எஸ்றா", "நெகேமியா", "எஸ்தர்", "யோபு",
@@ -1365,6 +1382,22 @@
     
     async function loadAppData() {
       try {
+        // Load Tamil Bible Dictionary (SQLite)
+        try {
+          console.log('📚 Loading Tamil Bible Dictionary...');
+          const dictRes = await fetch('dictionary/TSVPA1975.dictionary.SQLite3');
+          if (dictRes.ok) {
+            const dictArrayBuffer = await dictRes.arrayBuffer();
+            const SQL = await initSqlJs({
+              locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+            });
+            DICTIONARY_DB = new SQL.Database(new Uint8Array(dictArrayBuffer));
+            console.log('✅ Tamil Bible Dictionary loaded successfully');
+          }
+        } catch (dictErr) {
+          console.warn('⚠️ Could not load dictionary:', dictErr);
+        }
+        
         // Load Tamil Bible
         const bibleRes = await fetch('bibles/tamilbible.json');
         const bibleData = await bibleRes.json();
@@ -2013,7 +2046,9 @@
           const isSelected = SELECTED_VERSES.has(verseKey);
           const selectedClass = isSelected ? 'verse-selected' : '';
           // Verses are always clickable for selection
-          html += `<p data-verse-key="${verseKey}" class="${selectedClass}" onclick="toggleVerseSelectionByKey('${verseKey}')" style="cursor: pointer; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; box-sizing: border-box;"><span class="verse-num">${verseNum}</span>${verseText}</p>`;
+          // Make words in verse clickable for dictionary lookup (only for Tamil)
+          const verseWithDictionary = CURRENT_LANGUAGE === 'tamil' ? makeWordsClickable(verseText) : verseText;
+          html += `<p data-verse-key="${verseKey}" class="${selectedClass}" onclick="handleVerseClick(event, '${verseKey}')" style="cursor: pointer; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; box-sizing: border-box;"><span class="verse-num">${verseNum}</span>${verseWithDictionary}</p>`;
         });
         display.innerHTML = html || (CURRENT_LANGUAGE === 'tamil' ? 'வசனங்கள் கிடைக்கவில்லை.' : 'No verses found.');
       }
