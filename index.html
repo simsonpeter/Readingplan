@@ -986,26 +986,31 @@
               'zep': 'zephaniah', 'hag': 'haggai', 'zach': 'zechariah', 'mal': 'malachi'
             };
             
-            // Check if abbreviation maps to book name - STRICT matching only
+            // Check if abbreviation maps to book name - use exact match first
             const fullName = abbrevMap[bookKeyClean];
-            if (fullName && bookName === fullName) {
-              bookIndex = i;
-              console.log('Fallback match found (abbrev map - exact):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
-              break;
-            }
-            
-            // Only try loose matching if abbreviation is at least 3 chars and we haven't found a match
-            if (bookKeyClean.length >= 3) {
-              // Check if book name starts with abbreviation
-              if (bookName.startsWith(bookKeyClean)) {
+            if (fullName) {
+              // Check if this book name exactly matches the mapped full name
+              if (bookName === fullName) {
                 bookIndex = i;
-                console.log('Fallback match found (starts with):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+                console.log('Fallback match found (abbrev map - exact):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
                 break;
               }
-              // Check first word of book name
-              if (nameParts.length > 0 && nameParts[0].startsWith(bookKeyClean)) {
+              // Also check if book name starts with the mapped name
+              if (bookName.startsWith(fullName)) {
                 bookIndex = i;
-                console.log('Fallback match found (first word):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+                console.log('Fallback match found (abbrev map - starts with):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+                break;
+              }
+            }
+            
+            // AVOID loose matching - it causes false matches (e.g., "jer" matching "esther")
+            // Only use as absolute last resort with very strict conditions
+            if (bookIndex === undefined && bookKeyClean.length >= 4) {
+              // Only match if abbreviation is at least 4 chars AND book name starts with it
+              // This prevents "jer" (3 chars) from matching "esther" accidentally
+              if (bookName.startsWith(bookKeyClean) && bookName.length > bookKeyClean.length) {
+                bookIndex = i;
+                console.log('Fallback match found (strict prefix - 4+ chars):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
                 break;
               }
             }
@@ -1442,15 +1447,21 @@
           if (bookIndex !== -1) {
             BOOK_INDEX_MAP[enAbbr] = bookIndex;
           } else {
-            // Log unmapped books for debugging (only for common ones)
-            const commonAbbrs = ['Gen.', 'Exo.', 'Lev.', 'Num.', 'Deu.', 'Mat.', 'Mar.', 'Luk.', 'John.'];
-            if (commonAbbrs.includes(enAbbr)) {
-              console.warn('Could not map book:', enAbbr, '->', taAbbr);
-            }
+            // Log unmapped books for debugging
+            console.warn('Could not map book:', enAbbr, '->', taAbbr);
           }
         }
         console.log('BOOK_INDEX_MAP built with', Object.keys(BOOK_INDEX_MAP).length, 'entries');
-        console.log('Sample mappings:', Object.entries(BOOK_INDEX_MAP).slice(0, 10));
+        console.log('Sample mappings:', Object.entries(BOOK_INDEX_MAP).slice(0, 15));
+        // Verify key abbreviations exist
+        const testKeys = ['Gen.', 'Mat.', 'Jer.', 'Phm.', 'Exo.'];
+        testKeys.forEach(key => {
+          if (BOOK_INDEX_MAP[key] !== undefined) {
+            console.log('✓', key, '-> index', BOOK_INDEX_MAP[key], '(', TAMIL_BOOK_NAMES[BOOK_INDEX_MAP[key]], ')');
+          } else {
+            console.warn('✗', key, 'NOT in BOOK_INDEX_MAP');
+          }
+        });
 
         READING_PLAN_TA = READING_PLAN_EN.map(day => ({
           morning: day.morning.map(r => {
