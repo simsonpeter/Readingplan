@@ -1388,10 +1388,16 @@
           const dictRes = await fetch('dictionary/TSVPA1975.dictionary.SQLite3');
           if (dictRes.ok) {
             const dictArrayBuffer = await dictRes.arrayBuffer();
-            const SQL = await initSqlJs({
-              locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
-            });
-            DICTIONARY_DB = new SQL.Database(new Uint8Array(dictArrayBuffer));
+            // Initialize SQL.js
+            if (typeof initSqlJs !== 'undefined') {
+              const SQL = await initSqlJs({
+                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+              });
+              DICTIONARY_DB = new SQL.Database(new Uint8Array(dictArrayBuffer));
+              console.log('✅ Dictionary database loaded with', DICTIONARY_DB.exec('SELECT COUNT(*) FROM dictionary')[0].values[0][0], 'entries');
+            } else {
+              console.warn('⚠️ SQL.js not loaded yet');
+            }
             console.log('✅ Tamil Bible Dictionary loaded successfully');
           }
         } catch (dictErr) {
@@ -2136,6 +2142,75 @@
       
       // Reload current verses
       loadVerses();
+    }
+    
+    // === DICTIONARY FUNCTIONS ===
+    // Make Tamil words clickable for dictionary lookup
+    function makeWordsClickable(text) {
+      if (!DICTIONARY_DB || !text) return text;
+      
+      // Match Tamil words (3+ characters, avoiding punctuation and numbers)
+      // Escape single quotes in the word for onclick attribute
+      return text.replace(/([\u0B80-\u0BFF]{3,})/g, (match) => {
+        const escaped = match.replace(/'/g, "\\'");
+        return `<span class="dictionary-word" onclick="lookupDictionary('${escaped}'); event.stopPropagation();">${match}</span>`;
+      });
+    }
+    
+    // Lookup word in dictionary
+    function lookupDictionary(word) {
+      if (!DICTIONARY_DB) {
+        alert('Dictionary not loaded yet. Please wait...');
+        return;
+      }
+      
+      try {
+        // First, check if word exists in words table (variations)
+        let query = `SELECT standard_form FROM words WHERE variation = ? LIMIT 1`;
+        let result = DICTIONARY_DB.exec(query, [word]);
+        let standardWord = word;
+        
+        if (result.length > 0 && result[0].values.length > 0) {
+          standardWord = result[0].values[0][0];
+        }
+        
+        // Lookup in dictionary table
+        query = `SELECT topic, definition FROM dictionary WHERE topic = ? LIMIT 1`;
+        result = DICTIONARY_DB.exec(query, [standardWord]);
+        
+        const modal = document.getElementById('dictionary-modal');
+        const title = document.getElementById('dictionary-title');
+        const content = document.getElementById('dictionary-content');
+        
+        if (result.length > 0 && result[0].values.length > 0) {
+          const [topic, definition] = result[0].values[0];
+          title.textContent = `📖 ${topic}`;
+          content.innerHTML = definition;
+          modal.classList.add('active');
+        } else {
+          title.textContent = `📖 ${word}`;
+          content.innerHTML = `<p style="color: var(--text-secondary);">இந்த சொல்லுக்கான வரையறை கிடைக்கவில்லை.</p><p style="margin-top: 12px; font-size: 0.9rem;">No definition found for this word.</p>`;
+          modal.classList.add('active');
+        }
+      } catch (err) {
+        console.error('Dictionary lookup error:', err);
+        alert('Dictionary lookup failed: ' + err.message);
+      }
+    }
+    
+    function closeDictionary() {
+      const modal = document.getElementById('dictionary-modal');
+      modal.classList.remove('active');
+    }
+    
+    // Handle verse click - check if clicking on dictionary word or verse selection
+    function handleVerseClick(event, verseKey) {
+      // If clicking on a dictionary word, let it handle the click
+      if (event.target.classList.contains('dictionary-word')) {
+        return; // Dictionary word click already handled
+      }
+      // Otherwise, toggle verse selection
+      toggleVerseSelectionByKey(verseKey);
     }
     
     // Verse selection functions - verses are always clickable for selection
