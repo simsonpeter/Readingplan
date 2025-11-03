@@ -70,12 +70,16 @@
       width: 140px;
       height: auto;
       margin-bottom: 16px;
-      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.25));
+      /* Stronger multi-layer shadow to make white logo readable on gradient */
+      filter:
+        drop-shadow(0 2px 2px rgba(0,0,0,0.30))
+        drop-shadow(0 0 10px rgba(0,0,0,0.40))
+        drop-shadow(0 0 18px rgba(0,0,0,0.35));
       user-select: none;
       -webkit-user-drag: none;
-      /* Visually remove white background from non-transparent PNGs */
-      mix-blend-mode: multiply;
-      opacity: 0.95;
+      /* Keep natural colors so white text stays bright */
+      mix-blend-mode: normal;
+      opacity: 1;
       background: transparent;
     }
     #splash-screen.hidden {
