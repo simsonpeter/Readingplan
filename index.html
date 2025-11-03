@@ -938,25 +938,39 @@
       // Find book index using BOOK_INDEX_MAP
       let bookIndex = BOOK_INDEX_MAP[bookKey];
       
-      // If not found, try to find by direct book name match (fallback)
+      // If not found, try improved fallback matching
       if (bookIndex === undefined && CURRENT_BIBLE) {
         const bookKeyClean = bookKey.toLowerCase().replace(/\.$/, '').trim();
-        // Try matching book name directly
+        const bookKeyParts = bookKeyClean.split(' ');
+        
+        // Try matching book name directly with better logic
         for (let i = 0; i < CURRENT_BIBLE.books.length; i++) {
           const bookName = CURRENT_BIBLE.books[i].name.toLowerCase();
+          const nameParts = bookName.split(' ');
           
-          // Check if book name starts with or contains the abbreviation
-          if (bookName.includes(bookKeyClean) || bookKeyClean.includes(bookName.split(' ')[0])) {
-            // Also check if number prefix matches for numbered books
-            const bookNumMatch = bookKey.match(/^(\d+)\s+/);
-            const nameNumMatch = CURRENT_BIBLE.books[i].name.match(/^(\d+)\s+/);
-            if (bookNumMatch && nameNumMatch) {
-              if (bookNumMatch[1] === nameNumMatch[1]) {
-                bookIndex = i;
-                console.log('Fallback match found:', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
-                break;
-              }
-            } else if (!bookNumMatch && !nameNumMatch) {
+          // Check if it's a numbered book match
+          const bookNumMatch = bookKey.match(/^(\d+)\s+/);
+          const nameNumMatch = CURRENT_BIBLE.books[i].name.match(/^(\d+)\s+/);
+          
+          if (bookNumMatch && nameNumMatch) {
+            // Both have numbers - must match
+            if (bookNumMatch[1] !== nameNumMatch[1]) {
+              continue;
+            }
+            // Numbers match, check if abbreviation matches rest of name
+            const abbrRest = bookKeyClean.replace(/^\d+\s+/, '').trim();
+            const nameRest = bookName.replace(/^\d+\s+/, '').trim();
+            if (nameRest.startsWith(abbrRest) || abbrRest.length >= 3 && nameRest.includes(abbrRest)) {
+              bookIndex = i;
+              console.log('Fallback match found (numbered):', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
+              break;
+            }
+          } else if (!bookNumMatch && !nameNumMatch) {
+            // Neither has numbers - match abbreviation to book name start
+            // For abbreviations like "gen", "mat", "exo" - match against book name start
+            if (bookName.startsWith(bookKeyClean) || 
+                (bookKeyClean.length >= 3 && bookName.includes(bookKeyClean)) ||
+                (nameParts.length > 0 && nameParts[0].startsWith(bookKeyClean))) {
               bookIndex = i;
               console.log('Fallback match found:', bookKey, '->', CURRENT_BIBLE.books[i].name, 'at index', i);
               break;
