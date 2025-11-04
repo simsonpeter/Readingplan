@@ -2457,7 +2457,11 @@
     // === LONG PRESS HANDLING FOR VERSE SELECTION ===
     let longPressTimer = null;
     let longPressTarget = null;
+    let touchStartX = null;
+    let touchStartY = null;
+    let hasMoved = false;
     const LONG_PRESS_DURATION = 500; // 500ms for long press
+    const MOVE_THRESHOLD = 10; // pixels - if moved more than this, cancel long press
     
     function handleVerseTouchStart(event, verseKey) {
       // Don't trigger if clicking on dictionary word
@@ -2466,25 +2470,58 @@
         return;
       }
       
+      // Record initial touch position
+      const touch = event.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      hasMoved = false;
+      
       longPressTarget = verseKey;
       longPressTimer = setTimeout(() => {
-        // Long press detected - select verse
-        toggleVerseSelectionByKey(verseKey);
-        // Provide haptic feedback if available
-        if (navigator.vibrate) {
-          navigator.vibrate(50);
-        }
-        // Show visual feedback
-        const verseElement = document.querySelector(`[data-verse-key="${verseKey}"]`);
-        if (verseElement) {
-          verseElement.style.transform = 'scale(0.98)';
-          setTimeout(() => {
-            verseElement.style.transform = '';
-          }, 150);
+        // Only trigger if no movement detected
+        if (!hasMoved) {
+          // Long press detected - select verse
+          toggleVerseSelectionByKey(verseKey);
+          // Provide haptic feedback if available
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+          // Show visual feedback
+          const verseElement = document.querySelector(`[data-verse-key="${verseKey}"]`);
+          if (verseElement) {
+            verseElement.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+              verseElement.style.transform = '';
+            }, 150);
+          }
         }
         longPressTimer = null;
         longPressTarget = null;
+        touchStartX = null;
+        touchStartY = null;
+        hasMoved = false;
       }, LONG_PRESS_DURATION);
+    }
+    
+    function handleVerseTouchMove(event) {
+      // Check if user is scrolling (movement detected)
+      if (touchStartX !== null && touchStartY !== null && longPressTimer) {
+        const touch = event.touches[0];
+        const deltaX = Math.abs(touch.clientX - touchStartX);
+        const deltaY = Math.abs(touch.clientY - touchStartY);
+        
+        // If moved more than threshold, cancel long press (user is scrolling)
+        if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+          hasMoved = true;
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+            longPressTarget = null;
+            touchStartX = null;
+            touchStartY = null;
+          }
+        }
+      }
     }
     
     function handleVerseTouchEnd(event, verseKey) {
@@ -2493,6 +2530,9 @@
         longPressTimer = null;
         longPressTarget = null;
       }
+      touchStartX = null;
+      touchStartY = null;
+      hasMoved = false;
     }
     
     function handleVerseMouseDown(event, verseKey) {
