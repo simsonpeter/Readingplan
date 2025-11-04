@@ -2457,9 +2457,9 @@
     // === LONG PRESS HANDLING FOR VERSE SELECTION ===
     let longPressTimer = null;
     let longPressTarget = null;
-    let touchStartX = null;
-    let touchStartY = null;
-    let hasMoved = false;
+    let verseTouchStartX = null;
+    let verseTouchStartY = null;
+    let verseHasMoved = false;
     const LONG_PRESS_DURATION = 500; // 500ms for long press
     const MOVE_THRESHOLD = 10; // pixels - if moved more than this, cancel long press
     
@@ -2472,14 +2472,14 @@
       
       // Record initial touch position
       const touch = event.touches[0];
-      touchStartX = touch.clientX;
-      touchStartY = touch.clientY;
-      hasMoved = false;
+      verseTouchStartX = touch.clientX;
+      verseTouchStartY = touch.clientY;
+      verseHasMoved = false;
       
       longPressTarget = verseKey;
       longPressTimer = setTimeout(() => {
         // Only trigger if no movement detected
-        if (!hasMoved) {
+        if (!verseHasMoved) {
           // Long press detected - select verse
           toggleVerseSelectionByKey(verseKey);
           // Provide haptic feedback if available
@@ -2497,28 +2497,28 @@
         }
         longPressTimer = null;
         longPressTarget = null;
-        touchStartX = null;
-        touchStartY = null;
-        hasMoved = false;
+        verseTouchStartX = null;
+        verseTouchStartY = null;
+        verseHasMoved = false;
       }, LONG_PRESS_DURATION);
     }
     
     function handleVerseTouchMove(event) {
       // Check if user is scrolling (movement detected)
-      if (touchStartX !== null && touchStartY !== null && longPressTimer) {
+      if (verseTouchStartX !== null && verseTouchStartY !== null && longPressTimer) {
         const touch = event.touches[0];
-        const deltaX = Math.abs(touch.clientX - touchStartX);
-        const deltaY = Math.abs(touch.clientY - touchStartY);
+        const deltaX = Math.abs(touch.clientX - verseTouchStartX);
+        const deltaY = Math.abs(touch.clientY - verseTouchStartY);
         
         // If moved more than threshold, cancel long press (user is scrolling)
         if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
-          hasMoved = true;
+          verseHasMoved = true;
           if (longPressTimer) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
             longPressTarget = null;
-            touchStartX = null;
-            touchStartY = null;
+            verseTouchStartX = null;
+            verseTouchStartY = null;
           }
         }
       }
@@ -2530,9 +2530,9 @@
         longPressTimer = null;
         longPressTarget = null;
       }
-      touchStartX = null;
-      touchStartY = null;
-      hasMoved = false;
+      verseTouchStartX = null;
+      verseTouchStartY = null;
+      verseHasMoved = false;
     }
     
     function handleVerseMouseDown(event, verseKey) {
