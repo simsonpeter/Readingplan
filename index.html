@@ -1775,12 +1775,30 @@
           } else {
             // Log unmapped books for debugging
             console.warn('Could not map book:', enAbbr, '->', taAbbr);
+            
+            // Special handling: Add "Heb." if it's missing from TAMIL_MAP
+            if (enAbbr === 'Heb.' || enAbbr === 'He.') {
+              console.log('⚠️ Heb./He. not found in TAMIL_MAP, adding manually...');
+              // Find Hebrews book in TAMIL_BOOK_NAMES (should be around index 57)
+              const hebrewsIdx = TAMIL_BOOK_NAMES.findIndex(name => name.includes('எபிரேயர்') || name === 'எபிரேயர்');
+              if (hebrewsIdx !== -1) {
+                BOOK_INDEX_MAP[enAbbr] = hebrewsIdx;
+                console.log('✅ Manually added', enAbbr, '-> index', hebrewsIdx, '(Hebrews)');
+              } else {
+                // Fallback: search by English name in ENGLISH_BOOK_NAMES
+                const engIdx = ENGLISH_BOOK_NAMES.findIndex(name => name === 'Hebrews');
+                if (engIdx !== -1) {
+                  BOOK_INDEX_MAP[enAbbr] = engIdx; // Same index in TAMIL_BOOK_NAMES
+                  console.log('✅ Manually added', enAbbr, '-> index', engIdx, '(Hebrews via English)');
+                }
+              }
+            }
           }
         }
         console.log('BOOK_INDEX_MAP built with', Object.keys(BOOK_INDEX_MAP).length, 'entries');
         console.log('Sample mappings:', Object.entries(BOOK_INDEX_MAP).slice(0, 15));
-        // Verify key abbreviations exist - especially check Phm vs Philippians
-        const testKeys = ['Gen.', 'Mat.', 'Jer.', 'Phm.', 'Exo.', 'Phil.'];
+        // Verify key abbreviations exist - especially check Phm vs Philippians, Heb.
+        const testKeys = ['Gen.', 'Mat.', 'Jer.', 'Phm.', 'Exo.', 'Phil.', 'Heb.'];
         testKeys.forEach(key => {
           if (BOOK_INDEX_MAP[key] !== undefined) {
             const idx = BOOK_INDEX_MAP[key];
