@@ -952,7 +952,10 @@
           <option value="english">📖 English</option>
           <option value="dutch">📖 Dutch</option>
         </select>
-        <button id="parallel-toggle" onclick="toggleParallelReading()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;">
+        <button id="dictionary-toggle" onclick="toggleDictionary()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; margin-left: 8px;">
+          <i class="fas fa-book"></i> <span id="dictionary-text">Dictionary</span>
+        </button>
+        <button id="parallel-toggle" onclick="toggleParallelReading()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; margin-left: 8px;">
           <i class="fas fa-columns"></i> <span id="parallel-text">Parallel</span>
         </button>
       </div>
@@ -1028,6 +1031,7 @@
     let CURRENT_BIBLE = null; // Currently active Bible (TAMIL_BIBLE, ENGLISH_BIBLE, or DUTCH_BIBLE)
     let CURRENT_LANGUAGE = 'tamil'; // 'tamil', 'english', or 'dutch'
     let PARALLEL_MODE = false; // Parallel reading mode
+    let DICTIONARY_ENABLED = true; // Toggle for dictionary word highlighting in Tamil Bible
     let PARALLEL_LANG1 = 'tamil'; // First language for parallel reading
     let PARALLEL_LANG2 = 'english'; // Second language for parallel reading
     let SELECTED_VERSES = new Set(); // Track selected verses for sharing
@@ -2261,9 +2265,9 @@
           const verseKey = `${bookIndex}-${chapterIndex}-${verseIndex}`;
           const isSelected = SELECTED_VERSES.has(verseKey);
           const selectedClass = isSelected ? 'verse-selected' : '';
-          // Make words in verse clickable for dictionary lookup (only for Tamil and only if word exists in dictionary)
+          // Make words in verse clickable for dictionary lookup (only for Tamil, if dictionary is enabled, and only if word exists in dictionary)
           let verseWithDictionary = verseText;
-          if (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB) {
+          if (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB && DICTIONARY_ENABLED) {
             verseWithDictionary = makeWordsClickable(verseText);
           }
           html += `<p data-verse-key="${verseKey}" class="${selectedClass}" 
@@ -3178,7 +3182,7 @@
         }, 100);
       }
       
-      // If switching to bible view, ensure language selector is visible
+      // If switching to bible view, ensure language selector is visible and show/hide dictionary toggle
       if (view === 'bible') {
         setTimeout(() => {
           const langSelector = document.getElementById('bible-language-select');
@@ -3188,6 +3192,12 @@
             if (rect.top < tabsHeight) {
               langSelector.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
+          }
+          // Show/hide dictionary toggle button (only for Tamil)
+          const dictToggle = document.getElementById('dictionary-toggle');
+          if (dictToggle) {
+            dictToggle.style.display = (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB) ? 'flex' : 'none';
+            updateDictionaryToggleButton();
           }
         }, 100);
       }
@@ -3583,6 +3593,13 @@
           prevBtn.style.display = 'none';
           nextBtn.style.display = 'none';
         }
+      }
+      
+      // Initialize dictionary toggle button visibility
+      const dictToggle = document.getElementById('dictionary-toggle');
+      if (dictToggle) {
+        dictToggle.style.display = (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB) ? 'flex' : 'none';
+        updateDictionaryToggleButton();
       }
     });
   </script>
