@@ -2259,6 +2259,7 @@
           html += `<p data-verse-key="${verseKey}" class="${selectedClass}" 
             oncontextmenu="event.preventDefault(); return false;"
             ontouchstart="handleVerseTouchStart(event, '${verseKey}')"
+            ontouchmove="handleVerseTouchMove(event)"
             ontouchend="handleVerseTouchEnd(event, '${verseKey}')"
             onmousedown="handleVerseMouseDown(event, '${verseKey}')"
             onmouseup="handleVerseMouseUp(event, '${verseKey}')"
