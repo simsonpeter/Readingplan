@@ -1144,6 +1144,10 @@
         if (bookAbbrNoPeriod.toLowerCase() === 'phm') {
           bookAbbrNoPeriod = 'Phm'; // Keep as Phm, not Phil
         }
+        // "Heb" or "He" should map to Hebrews
+        if (bookAbbrNoPeriod.toLowerCase() === 'heb' || bookAbbrNoPeriod.toLowerCase() === 'he') {
+          bookAbbrNoPeriod = 'Heb'; // Standardize to Heb
+        }
         
         chapterNum = parseInt(engMatch[3], 10);
         
