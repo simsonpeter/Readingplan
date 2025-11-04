@@ -1575,6 +1575,12 @@
               const countResult = DICTIONARY_DB.exec('SELECT COUNT(*) FROM dictionary');
               if (countResult.length > 0 && countResult[0].values.length > 0) {
                 console.log('✅ Dictionary database loaded with', countResult[0].values[0][0], 'entries');
+                // Show dictionary toggle button if viewing Tamil Bible
+                const dictToggle = document.getElementById('dictionary-toggle');
+                if (dictToggle && CURRENT_LANGUAGE === 'tamil') {
+                  dictToggle.style.display = 'flex';
+                  updateDictionaryToggleButton();
+                }
                 // Reload verses if we're already viewing Tamil Bible
                 if (CURRENT_LANGUAGE === 'tamil' && CURRENT_BIBLE) {
                   setTimeout(() => loadVerses(), 100);
