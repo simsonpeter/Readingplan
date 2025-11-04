@@ -280,6 +280,11 @@
       margin-top: 0;
       padding-bottom: 70px; /* Add padding to prevent content from being hidden behind bottom bar */
     }
+    /* Bible view uses full width - remove side padding */
+    .content:has(#bible-view:not([style*="display: none"])) {
+      padding-left: 0;
+      padding-right: 0;
+    }
     #today-view {
       display: flex;
       flex-direction: column;
@@ -364,7 +369,9 @@
       position: relative;
     }
     #bible-view {
-      padding-top: 8px; /* Less padding for Bible view since it has its own selector row */
+      padding: 0; /* Remove all padding - use full width */
+      padding-top: 8px; /* Small padding at top for selector row */
+      padding-bottom: 80px; /* Keep bottom padding to prevent content from being hidden behind bottom bar */
       word-wrap: break-word;
       overflow-wrap: break-word;
     }
@@ -384,6 +391,7 @@
     }
     .search-container {
       margin: 8px 0;
+      padding: 0 8px; /* Add horizontal padding for search container */
     }
     .search-input-wrapper {
       position: relative;
@@ -452,6 +460,7 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 20px;
+      margin: 0 8px; /* Add horizontal margin only for verse display */
       box-shadow: var(--shadow);
       font-family: "Noto Sans Tamil", "Latha", sans-serif;
       font-size: 1.1rem;
