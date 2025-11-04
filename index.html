@@ -1691,6 +1691,16 @@
           // Remove the trailing period from Tamil abbreviation for matching
           const taAbbrClean = taAbbr.replace(/\.$/, '').trim();
           
+          // Special handling for Heb. -> எபிரே. -> எபிரெயர்
+          if (enAbbr === 'Heb.' || enAbbr === 'He.') {
+            const hebrewsIdx = TAMIL_BOOK_NAMES.findIndex(name => name === 'எபிரெயர்' || name.includes('எபிரே'));
+            if (hebrewsIdx !== -1) {
+              BOOK_INDEX_MAP[enAbbr] = hebrewsIdx;
+              console.log('✅ Manually mapped', enAbbr, '-> index', hebrewsIdx, '(Hebrews)');
+              continue; // Skip to next entry
+            }
+          }
+          
           // Find matching book by checking if Tamil name starts with abbreviation
           // IMPORTANT: Use findIndex which returns FIRST match - we need to ensure correct order
           // For Phm. (பிலேமோ), we want பிலேமோன் (index 56), not பிலிப்பியர் (index 49)
