@@ -1259,6 +1259,14 @@
               if (bookKeyClean === 'phm') {
                 console.warn('⚠️ Phm abbreviation - ensuring it matches Philemon, not Philippians');
               }
+              // Special check for "heb" or "he" -> "Hebrews"
+              if (bookKeyClean === 'heb' || bookKeyClean === 'he') {
+                if (bookName.includes('hebrew') || bookName === 'hebrews') {
+                  bookIndex = i;
+                  console.log('✓ Fallback match found (Hebrews special case):', bookKey, '(' + bookKeyClean + ') ->', CURRENT_BIBLE.books[i].name, 'at index', i);
+                  break;
+                }
+              }
             }
             
             // NO loose matching at all - it causes false matches
