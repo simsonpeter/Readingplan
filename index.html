@@ -2474,6 +2474,34 @@
       modal.classList.remove('active');
     }
     
+    // Toggle dictionary highlighting on/off
+    function toggleDictionary() {
+      DICTIONARY_ENABLED = !DICTIONARY_ENABLED;
+      updateDictionaryToggleButton();
+      // Reload current verses to apply the change
+      if (CURRENT_BIBLE && CURRENT_BOOK && CURRENT_CHAPTER) {
+        loadVerses();
+      }
+    }
+    
+    // Update dictionary toggle button text and appearance
+    function updateDictionaryToggleButton() {
+      const dictToggle = document.getElementById('dictionary-toggle');
+      const dictText = document.getElementById('dictionary-text');
+      
+      if (dictToggle && dictText) {
+        if (DICTIONARY_ENABLED) {
+          dictText.textContent = 'Dictionary ON';
+          dictToggle.style.background = 'var(--accent)';
+          dictToggle.style.opacity = '1';
+        } else {
+          dictText.textContent = 'Dictionary OFF';
+          dictToggle.style.background = 'var(--text-secondary)';
+          dictToggle.style.opacity = '0.7';
+        }
+      }
+    }
+    
     // === LONG PRESS HANDLING FOR VERSE SELECTION ===
     let longPressTimer = null;
     let longPressTarget = null;
