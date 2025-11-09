@@ -2479,8 +2479,14 @@
       DICTIONARY_ENABLED = !DICTIONARY_ENABLED;
       updateDictionaryToggleButton();
       // Reload current verses to apply the change
-      if (CURRENT_BIBLE && CURRENT_BOOK && CURRENT_CHAPTER) {
-        loadVerses();
+      // Only reload if we're viewing the Bible and have a current Bible loaded
+      if (CURRENT_BIBLE && currentView === 'bible') {
+        const bookSelect = document.getElementById('book-select');
+        const chapterSelect = document.getElementById('chapter-select');
+        // Only reload if both selects have values
+        if (bookSelect && chapterSelect && bookSelect.value && chapterSelect.value) {
+          loadVerses();
+        }
       }
     }
     
