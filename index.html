@@ -904,6 +904,73 @@
     .dark-mode .nav-current-chapter {
       color: #fff;
     }
+    .share-btn-container {
+      position: relative;
+      display: inline-block;
+    }
+    .share-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+    .share-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+    .share-menu {
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      margin-bottom: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 180px;
+      z-index: 1000;
+      overflow: hidden;
+    }
+    .share-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-align: left;
+    }
+    .share-menu-item:hover {
+      background: var(--bg);
+    }
+    .share-menu-item i {
+      width: 20px;
+      text-align: center;
+    }
+    .dark-mode .share-menu {
+      background: var(--card);
+      border-color: var(--border);
+    }
+    .dark-mode .share-menu-item {
+      color: var(--text);
+    }
+    .dark-mode .share-menu-item:hover {
+      background: var(--bg);
+    }
   </style>
 </head>
 <body>
@@ -1018,9 +1085,19 @@
     <button class="nav-btn-bottom" id="next-chap-btn" onclick="navigateChapter(1)">
       <i class="fas fa-chevron-right"></i>
     </button>
-    <button class="share-btn" onclick="shareReadings()">
-      <i class="fas fa-share-alt"></i> Share
-    </button>
+    <div class="share-btn-container" style="position: relative;">
+      <button class="share-btn" onclick="toggleShareMenu(event)">
+        <i class="fas fa-share-alt"></i> Share
+      </button>
+      <div id="share-menu" class="share-menu" style="display: none;">
+        <button class="share-menu-item" onclick="shareAsImage()">
+          <i class="fas fa-image"></i> Share as Image
+        </button>
+        <button class="share-menu-item" onclick="shareAsText()">
+          <i class="fas fa-file-alt"></i> Share as Text
+        </button>
+      </div>
+    </div>
   </div>
   <div class="watermark">JayathaSoft</div>
 
@@ -1343,11 +1420,11 @@
         
         // Set book
         bookSelect.value = bookIndex;
-        loadChapters();
+        // Load chapters with the specific chapter index to prevent last position override
+        loadChapters(false, safeChapter);
         
-        // Wait a bit more for chapters to load, then set chapter
+        // Wait a bit more for chapters to load, then load verses
         setTimeout(() => {
-          chapterSelect.value = safeChapter;
           loadVerses();
           
           // Scroll to specific verse if provided
@@ -2077,7 +2154,7 @@
       // Update nav buttons immediately
       updateNavButtons();
     }
-    function loadChapters(autoLoadVerses = true) {
+    function loadChapters(autoLoadVerses = true, forceChapterIndex = null) {
       const bookIndex = document.getElementById('book-select').value;
       const chapterSelect = document.getElementById('chapter-select');
       chapterSelect.innerHTML = '';
@@ -2091,12 +2168,17 @@
       }
       chapterSelect.disabled = false;
       
-      // Load last read chapter or default to chapter 1
-      const lastPos = loadLastReadPosition();
-      if (lastPos.bookIndex == bookIndex) {
-        chapterSelect.value = lastPos.chapterIndex;
+      // If a specific chapter index is provided, use it (e.g., from navigateToBookChapter)
+      if (forceChapterIndex !== null) {
+        chapterSelect.value = forceChapterIndex;
       } else {
-        chapterSelect.value = 0; // Default to chapter 1
+        // Load last read chapter or default to chapter 1
+        const lastPos = loadLastReadPosition();
+        if (lastPos.bookIndex == bookIndex) {
+          chapterSelect.value = lastPos.chapterIndex;
+        } else {
+          chapterSelect.value = 0; // Default to chapter 1
+        }
       }
       
       // Update nav buttons immediately when book/chapter changes
@@ -2711,21 +2793,40 @@
       }
     }
     
-    async function shareSelectedVerses() {
+    // Toggle share menu
+    function toggleShareMenu(event) {
+      event.stopPropagation();
+      const menu = document.getElementById('share-menu');
+      const isVisible = menu.style.display !== 'none';
+      menu.style.display = isVisible ? 'none' : 'block';
+      
+      // Close menu when clicking outside
+      if (!isVisible) {
+        setTimeout(() => {
+          document.addEventListener('click', function closeMenu(e) {
+            if (!e.target.closest('.share-btn-container')) {
+              menu.style.display = 'none';
+              document.removeEventListener('click', closeMenu);
+            }
+          }, { once: true });
+        }, 0);
+      }
+    }
+    
+    // Get verses data (shared logic for both image and text sharing)
+    function getVersesData() {
       const bookSelect = document.getElementById('book-select');
       const chapterSelect = document.getElementById('chapter-select');
       
       if (!bookSelect || bookSelect.value === '' || !chapterSelect || chapterSelect.value === '') {
-        alert('Please select a book and chapter to share.');
-        return;
+        return null;
       }
       
       const bookIndex = parseInt(bookSelect.value);
       const chapterIndex = parseInt(chapterSelect.value);
       
       if (!CURRENT_BIBLE || !CURRENT_BIBLE.books[bookIndex]) {
-        alert('Bible not loaded. Please wait and try again.');
-        return;
+        return null;
       }
       
       const bookName = CURRENT_BIBLE.books[bookIndex].name;
@@ -2751,6 +2852,7 @@
             // Get verses from both languages
             const getBibleForLang = (lang) => {
               if (lang === 'tamil') return TAMIL_BIBLE;
+              if (lang === 'tamil-romanized') return TAMIL_ROMANIZED_BIBLE;
               if (lang === 'english') return ENGLISH_BIBLE;
               if (lang === 'dutch') return DUTCH_BIBLE;
               return null;
@@ -2770,8 +2872,7 @@
         // Share entire chapter
         const chapter = CURRENT_BIBLE.books[bookIndex].chapters[chapterIndex];
         if (!chapter || chapter.length === 0) {
-          alert('No verses found in this chapter.');
-          return;
+          return null;
         }
         
         for (let i = 0; i < chapter.length; i++) {
@@ -2782,6 +2883,7 @@
             // Get verses from both languages
             const getBibleForLang = (lang) => {
               if (lang === 'tamil') return TAMIL_BIBLE;
+              if (lang === 'tamil-romanized') return TAMIL_ROMANIZED_BIBLE;
               if (lang === 'english') return ENGLISH_BIBLE;
               if (lang === 'dutch') return DUTCH_BIBLE;
               return null;
@@ -2801,8 +2903,38 @@
         }
       }
       
-      // Create share image
-      await shareVersesAsImage(bookName, chapterNum, verses);
+      return { bookName, chapterNum, verses };
+    }
+    
+    // Share as image
+    async function shareAsImage() {
+      document.getElementById('share-menu').style.display = 'none';
+      
+      const data = getVersesData();
+      if (!data) {
+        alert('Please select a book and chapter to share.');
+        return;
+      }
+      
+      await shareVersesAsImage(data.bookName, data.chapterNum, data.verses);
+    }
+    
+    // Share as text
+    async function shareAsText() {
+      document.getElementById('share-menu').style.display = 'none';
+      
+      const data = getVersesData();
+      if (!data) {
+        alert('Please select a book and chapter to share.');
+        return;
+      }
+      
+      await shareVersesAsText(data.bookName, data.chapterNum, data.verses);
+    }
+    
+    async function shareSelectedVerses() {
+      // Legacy function - redirects to image sharing for backward compatibility
+      await shareAsImage();
     }
     
     async function shareVersesAsImage(bookName, chapterNum, verses) {
@@ -2908,6 +3040,63 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+      }
+    }
+    
+    // Share verses as plain text (no background, no image)
+    async function shareVersesAsText(bookName, chapterNum, verses) {
+      // Format verses as plain text
+      let textContent = `${bookName} ${chapterNum}\n\n`;
+      
+      for (const verse of verses) {
+        // Remove any HTML tags from verse text
+        const cleanText = verse.text.replace(/<[^>]*>/g, '').trim();
+        if (cleanText) {
+          textContent += `${verse.verseNum} ${cleanText}\n\n`;
+        }
+      }
+      
+      // Remove trailing newlines
+      textContent = textContent.trim();
+      
+      // Try to use Web Share API first
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `${bookName} ${chapterNum}`,
+            text: textContent
+          });
+          return;
+        } catch (err) {
+          // If user cancels or share fails, fall back to clipboard
+          if (err.name !== 'AbortError') {
+            console.log('Web Share API failed, falling back to clipboard:', err);
+          } else {
+            return; // User cancelled
+          }
+        }
+      }
+      
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(textContent);
+        alert('Text copied to clipboard!');
+      } catch (err) {
+        // Final fallback: Create a textarea and copy
+        const textarea = document.createElement('textarea');
+        textarea.value = textContent;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          alert('Text copied to clipboard!');
+        } catch (e) {
+          // Last resort: Show text in alert (not ideal but works)
+          prompt('Copy this text:', textContent);
+        }
+        document.body.removeChild(textarea);
       }
     }
     
