@@ -1412,14 +1412,26 @@
       const maxChap = CURRENT_BIBLE.books[bookIndex].chapters.length;
       const safeChapter = Math.max(0, Math.min(chapterIndex, maxChap - 1));
       
-      // Switch to Bible tab and load the correct book and chapter
-      showTab('bible');
-      setTimeout(() => {
-        const bookSelect = document.getElementById('book-select');
-        const chapterSelect = document.getElementById('chapter-select');
-        
-        // Set book
+      // Get book and chapter selects BEFORE switching tabs to prevent last position override
+      const bookSelect = document.getElementById('book-select');
+      const chapterSelect = document.getElementById('chapter-select');
+      
+      // Set book BEFORE switching to Bible tab
+      // This prevents showTab from loading the last position
+      if (bookSelect) {
         bookSelect.value = bookIndex;
+      }
+      
+      // Also set a temporary chapter value to prevent showTab from loading last position
+      // This will be overridden by loadChapters with the correct value
+      if (chapterSelect) {
+        chapterSelect.value = safeChapter;
+      }
+      
+      // Switch to Bible tab
+      showTab('bible');
+      
+      setTimeout(() => {
         // Load chapters with the specific chapter index to prevent last position override
         loadChapters(false, safeChapter);
         
@@ -1807,9 +1819,14 @@
           console.warn('Tamil Romanized Bible not found, skipping');
         }
         
-        // Set default Bible
-        CURRENT_BIBLE = TAMIL_BIBLE;
-        CURRENT_LANGUAGE = 'tamil';
+        // Load user settings (must be after Bibles are loaded)
+        loadUserSettings();
+        
+        // Set default Bible if not set by loadUserSettings
+        if (!CURRENT_BIBLE) {
+          CURRENT_BIBLE = TAMIL_BIBLE;
+          CURRENT_LANGUAGE = 'tamil';
+        }
 
         // Load Plan
         const planRes = await fetch('plan/njcplan.json');
@@ -1988,6 +2005,19 @@
         setTimeout(() => {
           updateBibleLanguageDropdown();
           console.log('Bibles loaded - Tamil:', !!TAMIL_BIBLE, 'Tamil Romanized:', !!TAMIL_ROMANIZED_BIBLE, 'English:', !!ENGLISH_BIBLE, 'Dutch:', !!DUTCH_BIBLE);
+          
+          // Restore saved view/tab after everything is loaded
+          const savedSettings = localStorage.getItem('userSettings');
+          if (savedSettings) {
+            try {
+              const settings = JSON.parse(savedSettings);
+              if (settings.currentView && ['today', 'calendar', 'bible'].includes(settings.currentView)) {
+                showTab(settings.currentView);
+              }
+            } catch (e) {
+              console.error('Error restoring view:', e);
+            }
+          }
         }, 100);
         
         // Update parallel toggle and other buttons
@@ -2103,6 +2133,9 @@
       setTimeout(() => {
         loadChapters(true); // This will load verses with last position
       }, 50);
+      
+      // Save settings
+      saveUserSettings();
     }
 
     // === BIBLE UI FUNCTIONS ===
@@ -2494,6 +2527,9 @@
       }
       
       loadVerses();
+      
+      // Save settings
+      saveUserSettings();
     }
     
     // Toggle parallel reading mode
@@ -2510,6 +2546,9 @@
       
       // Reload current verses
       loadVerses();
+      
+      // Save settings
+      saveUserSettings();
     }
     
     // === DICTIONARY FUNCTIONS ===
@@ -2627,6 +2666,9 @@
           loadVerses();
         }
       }
+      
+      // Save settings
+      saveUserSettings();
     }
     
     // Update dictionary toggle button text and appearance
@@ -3372,6 +3414,63 @@
     function saveProgress(progress) {
       localStorage.setItem('bibleProgress', JSON.stringify(progress));
     }
+    
+    // Save all user settings
+    function saveUserSettings() {
+      const settings = {
+        currentLanguage: CURRENT_LANGUAGE,
+        parallelMode: PARALLEL_MODE,
+        dictionaryEnabled: DICTIONARY_ENABLED,
+        parallelLang1: PARALLEL_LANG1,
+        parallelLang2: PARALLEL_LANG2,
+        currentView: currentView
+      };
+      localStorage.setItem('userSettings', JSON.stringify(settings));
+    }
+    
+    // Load all user settings
+    function loadUserSettings() {
+      try {
+        const saved = localStorage.getItem('userSettings');
+        if (saved) {
+          const settings = JSON.parse(saved);
+          if (settings.currentLanguage) CURRENT_LANGUAGE = settings.currentLanguage;
+          if (typeof settings.parallelMode === 'boolean') PARALLEL_MODE = settings.parallelMode;
+          if (typeof settings.dictionaryEnabled === 'boolean') DICTIONARY_ENABLED = settings.dictionaryEnabled;
+          if (settings.parallelLang1) PARALLEL_LANG1 = settings.parallelLang1;
+          if (settings.parallelLang2) PARALLEL_LANG2 = settings.parallelLang2;
+          if (settings.currentView) currentView = settings.currentView;
+          
+          // Apply loaded settings
+          if (CURRENT_LANGUAGE === 'tamil' && TAMIL_BIBLE) {
+            CURRENT_BIBLE = TAMIL_BIBLE;
+          } else if (CURRENT_LANGUAGE === 'tamil-romanized' && TAMIL_ROMANIZED_BIBLE) {
+            CURRENT_BIBLE = TAMIL_ROMANIZED_BIBLE;
+          } else if (CURRENT_LANGUAGE === 'english' && ENGLISH_BIBLE) {
+            CURRENT_BIBLE = ENGLISH_BIBLE;
+          } else if (CURRENT_LANGUAGE === 'dutch' && DUTCH_BIBLE) {
+            CURRENT_BIBLE = DUTCH_BIBLE;
+          }
+          
+          // Update parallel mode UI
+          if (PARALLEL_MODE) {
+            const parallelText = document.getElementById('parallel-text');
+            if (parallelText) {
+              parallelText.textContent = 'Single';
+            }
+          }
+          
+          // Update dictionary toggle button
+          updateDictionaryToggleButton();
+          
+          // Restore the saved view/tab (will be done after UI is ready)
+          // Note: We don't call showTab here to avoid saving during load
+          // The view will be restored after the app finishes loading
+        }
+      } catch (err) {
+        console.error('Error loading user settings:', err);
+      }
+    }
     function renderReadings(dayIndex) {
       if (dayIndex < 0 || dayIndex >= READING_PLAN_EN.length) return;
       const now = new Date();
@@ -3444,6 +3543,8 @@
     }
     function showTab(view) {
       currentView = view;
+      // Save current view
+      saveUserSettings();
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       const tabIndex = ['today','calendar','bible'].indexOf(view);
       if (tabIndex >= 0) {
@@ -3728,11 +3829,9 @@
       });
     }
     async function shareReadings() {
-      // Check if we're in Bible tab - use currentView variable or check active tab button
-      const bibleView = document.getElementById('bible-view');
-      const isBibleTab = bibleView && bibleView.style.display !== 'none';
-      
-      if (isBibleTab) {
+      // Use currentView variable to determine which tab is active
+      // This is more reliable than checking display styles
+      if (currentView === 'bible') {
         const bookSelect = document.getElementById('book-select');
         const chapterSelect = document.getElementById('chapter-select');
         
@@ -3743,14 +3842,14 @@
         }
       }
       
-      // Otherwise, share reading plan
+      // Otherwise, share reading plan (for today or calendar tabs)
       try {
         const blob = await shareReadingsAsImage();
         if (!blob) throw new Error('Image creation failed');
         const file = new File([blob], 'JOURNEY_Bible_Reading.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
-            title: 'Today’s Bible Reading',
+            title: "Today's Bible Reading",
             text: '📖 My daily Bible reading from New Jerusalem Church',
             files: [file]
           });
