@@ -2952,26 +2952,112 @@
     async function shareAsImage() {
       document.getElementById('share-menu').style.display = 'none';
       
-      const data = getVersesData();
-      if (!data) {
-        alert('Please select a book and chapter to share.');
-        return;
+      // Check which tab is active
+      if (currentView === 'bible') {
+        // Share Bible verses
+        const data = getVersesData();
+        if (!data) {
+          alert('Please select a book and chapter to share.');
+          return;
+        }
+        await shareVersesAsImage(data.bookName, data.chapterNum, data.verses);
+      } else {
+        // Share reading plan (today or calendar tab)
+        // For today tab, always share today's content
+        // For calendar tab, share the currently selected day's content
+        let dayIndexToShare = currentDayIndex;
+        
+        if (currentView === 'today') {
+          // Calculate today's day index to ensure we share today's content
+          const now = new Date();
+          const startOfYear = new Date(now.getFullYear(), 0, 1);
+          startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
+          const nowNormalized = new Date(now);
+          nowNormalized.setHours(12, 0, 0, 0);
+          const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
+          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+        }
+        
+        // If no day index is set, use today's index as fallback
+        if (dayIndexToShare === null || dayIndexToShare === undefined) {
+          const now = new Date();
+          const startOfYear = new Date(now.getFullYear(), 0, 1);
+          startOfYear.setHours(12, 0, 0, 0);
+          const nowNormalized = new Date(now);
+          nowNormalized.setHours(12, 0, 0, 0);
+          const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
+          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+        }
+        
+        try {
+          const blob = await shareReadingsAsImage(dayIndexToShare);
+          if (!blob) throw new Error('Image creation failed');
+          const file = new File([blob], 'JOURNEY_Bible_Reading.png', { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: "Today's Bible Reading",
+              text: '📖 My daily Bible reading from New Jerusalem Church',
+              files: [file]
+            });
+          } else {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'NJC_Bible_Reading.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
+        } catch (err) {
+          console.error('Share failed:', err);
+        }
       }
-      
-      await shareVersesAsImage(data.bookName, data.chapterNum, data.verses);
     }
     
     // Share as text
     async function shareAsText() {
       document.getElementById('share-menu').style.display = 'none';
       
-      const data = getVersesData();
-      if (!data) {
-        alert('Please select a book and chapter to share.');
-        return;
+      // Check which tab is active
+      if (currentView === 'bible') {
+        // Share Bible verses as text
+        const data = getVersesData();
+        if (!data) {
+          alert('Please select a book and chapter to share.');
+          return;
+        }
+        await shareVersesAsText(data.bookName, data.chapterNum, data.verses);
+      } else {
+        // Share reading plan as text (today or calendar tab)
+        // For today tab, always share today's content
+        // For calendar tab, share the currently selected day's content
+        let dayIndexToShare = currentDayIndex;
+        
+        if (currentView === 'today') {
+          // Calculate today's day index to ensure we share today's content
+          const now = new Date();
+          const startOfYear = new Date(now.getFullYear(), 0, 1);
+          startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
+          const nowNormalized = new Date(now);
+          nowNormalized.setHours(12, 0, 0, 0);
+          const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
+          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+        }
+        
+        // If no day index is set, use today's index as fallback
+        if (dayIndexToShare === null || dayIndexToShare === undefined) {
+          const now = new Date();
+          const startOfYear = new Date(now.getFullYear(), 0, 1);
+          startOfYear.setHours(12, 0, 0, 0);
+          const nowNormalized = new Date(now);
+          nowNormalized.setHours(12, 0, 0, 0);
+          const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
+          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+        }
+        
+        await shareReadingsAsText(dayIndexToShare);
       }
-      
-      await shareVersesAsText(data.bookName, data.chapterNum, data.verses);
     }
     
     async function shareSelectedVerses() {
@@ -3849,6 +3935,82 @@
         canvas.toBlob(blob => resolve(blob), 'image/png');
       });
     }
+    
+    // Share reading plan as plain text (no background, no image)
+    async function shareReadingsAsText(dayIndex) {
+      if (dayIndex === null || dayIndex === undefined) {
+        console.error('No day index provided for sharing');
+        return;
+      }
+      
+      if (dayIndex < 0 || dayIndex >= READING_PLAN_EN.length) {
+        console.error('Invalid day index:', dayIndex);
+        return;
+      }
+      
+      const en = READING_PLAN_EN[dayIndex];
+      const ta = READING_PLAN_TA[dayIndex];
+      
+      // Calculate date string for the day being shared
+      const now = new Date();
+      const year = now.getFullYear();
+      const targetDate = new Date(year, 0, 1);
+      targetDate.setDate(targetDate.getDate() + dayIndex);
+      const dateStr = targetDate.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric'
+      });
+      
+      // Format as plain text
+      let textContent = `📖 One Year Bible - ${dateStr}\n\n`;
+      textContent += `☀️ Morning Reading:\n`;
+      textContent += `${en.morning.join(', ')}\n`;
+      textContent += `${ta.morning.map(s => s.replace(/<[^>]*>/g, '')).join(', ')}\n\n`;
+      textContent += `🌙 Evening Reading:\n`;
+      textContent += `${en.evening.join(', ')}\n`;
+      textContent += `${ta.evening.map(s => s.replace(/<[^>]*>/g, '')).join(', ')}\n\n`;
+      textContent += `— New Jerusalem Church`;
+      
+      // Try to use Web Share API first
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `Today's Bible Reading`,
+            text: textContent
+          });
+          return;
+        } catch (err) {
+          // If user cancels or share fails, fall back to clipboard
+          if (err.name !== 'AbortError') {
+            console.log('Web Share API failed, falling back to clipboard:', err);
+          } else {
+            return; // User cancelled
+          }
+        }
+      }
+      
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(textContent);
+        alert('Text copied to clipboard!');
+      } catch (err) {
+        // Final fallback: Create a textarea and copy
+        const textarea = document.createElement('textarea');
+        textarea.value = textContent;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          alert('Text copied to clipboard!');
+        } catch (e) {
+          // Last resort: Show text in prompt
+          prompt('Copy this text:', textContent);
+        }
+        document.body.removeChild(textarea);
+      }
+    }
+    
     async function shareReadings() {
       // Use currentView variable to determine which tab is active
       // This is more reliable than checking display styles
