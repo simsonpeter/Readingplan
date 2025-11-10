@@ -949,6 +949,7 @@
       <div class="selector-row" style="margin-bottom: 8px; gap: 8px; margin-top: 8px;">
         <select id="bible-language-select" onchange="switchBibleLanguage()" style="flex: 1; min-width: 140px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; display: none; appearance: none; background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'white\'%3E%3Cpath d=\'M7 10l5 5 5-5z\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 8px center; background-size: 20px; padding-right: 35px;">
           <option value="tamil">📖 Tamil</option>
+          <option value="tamil-romanized">📖 Tamil (Romanized)</option>
           <option value="english">📖 English</option>
           <option value="dutch">📖 Dutch</option>
         </select>
@@ -1026,10 +1027,11 @@
   <script>
     // === GLOBALS ===
     let TAMIL_BIBLE = null;
+    let TAMIL_ROMANIZED_BIBLE = null;
     let ENGLISH_BIBLE = null;
     let DUTCH_BIBLE = null;
-    let CURRENT_BIBLE = null; // Currently active Bible (TAMIL_BIBLE, ENGLISH_BIBLE, or DUTCH_BIBLE)
-    let CURRENT_LANGUAGE = 'tamil'; // 'tamil', 'english', or 'dutch'
+    let CURRENT_BIBLE = null; // Currently active Bible (TAMIL_BIBLE, TAMIL_ROMANIZED_BIBLE, ENGLISH_BIBLE, or DUTCH_BIBLE)
+    let CURRENT_LANGUAGE = 'tamil'; // 'tamil', 'tamil-romanized', 'english', or 'dutch'
     let PARALLEL_MODE = false; // Parallel reading mode
     let DICTIONARY_ENABLED = true; // Toggle for dictionary word highlighting in Tamil Bible
     let PARALLEL_LANG1 = 'tamil'; // First language for parallel reading
@@ -1048,6 +1050,19 @@
       "மத்தேயு", "மாற்கு", "லுூக்கா", "யோவான்", "அப்போஸ்தலர்", "ரோமர்", "1 கொரிந்தியர்", "2 கொரிந்தியர்", "கலாத்தியர்",
       "எபேசியர்", "பிலிப்பியர்", "கொலோசெயர்", "1 தெசலோனிக்கேயர்", "2 தெசலோனிக்கேயர்", "1 தீமோத்தேயு", "2 தீமோத்தேயு", "தீத்து",
       "பிலேமோன்", "எபிரெயர்", "யாக்கோபு", "1 பேதுரு", "2 பேதுரு", "1 யோவான்", "2 யோவான்", "3 யோவான்", "யூதா", "வெளி"
+    ];
+    const TAMIL_ROMANIZED_BOOK_NAMES = [
+      "Aadiyagam", "Yaathiraagam", "Leviyaragam", "Ennaagam", "Upagam", "Yosuva", 
+      "Niyaayathipathikal", "Ruth", "1 Samuvel", "2 Samuvel", "1 Irajakkal", 
+      "2 Irajakkal", "1 Nalagam", "2 Nalagam", "Esra", "Nekemiya", "Esther", "Yobu",
+      "Sangeetham", "Neethimozhikal", "Pirasangi", "Unnathappattu", "Esaiya", 
+      "Eremiya", "Pulambal", "Esekkiel", "Thaniyel", "Osiya", "Yovel", "Amos", 
+      "Obadiya", "Yona", "Mika", "Nagum", "Abaguk", "Seppaniya", "Agai", 
+      "Sakariya", "Malkiya", "Matteyu", "Marku", "Lukka", "Yovan", "Apostalar", 
+      "Romer", "1 Korinthiyar", "2 Korinthiyar", "Kalathiyar", "Ephesiyar", 
+      "Pilippiyar", "Koloseyar", "1 Thessaloniikeyar", "2 Thessaloniikeyar", 
+      "1 Thimotheyu", "2 Thimotheyu", "Thittu", "Pilemon", "Epreyar", "Yakkobu", 
+      "1 Peturu", "2 Peturu", "1 Yovan", "2 Yovan", "3 Yovan", "Yutha", "Veli"
     ];
     const ENGLISH_BOOK_NAMES = [
       "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth", "1 Samuel",
@@ -1695,6 +1710,26 @@
           console.error('- Error stack:', err.stack);
         }
         
+        // Load Tamil Romanized Bible (if exists)
+        try {
+          const tamilRomanizedBibleRes = await fetch('bibles/tamilromanizedbible.json');
+          if (tamilRomanizedBibleRes.ok) {
+            const tamilRomanizedBibleData = await tamilRomanizedBibleRes.json();
+            TAMIL_ROMANIZED_BIBLE = {
+              books: tamilRomanizedBibleData.Book.map((bookObj, index) => {
+                const name = TAMIL_ROMANIZED_BOOK_NAMES[index] || `Book ${index + 1}`;
+                const chapters = bookObj.Chapter ? bookObj.Chapter.map(ch =>
+                  ch.Verse ? ch.Verse.map(v => v.Verse || '') : []
+                ) : [];
+                return { name, chapters };
+              })
+            };
+            console.log('✅ Tamil Romanized Bible loaded');
+          }
+        } catch (err) {
+          console.warn('Tamil Romanized Bible not found, skipping');
+        }
+        
         // Set default Bible
         CURRENT_BIBLE = TAMIL_BIBLE;
         CURRENT_LANGUAGE = 'tamil';
@@ -1875,12 +1910,12 @@
         // Update Bible language dropdown after all Bibles are loaded
         setTimeout(() => {
           updateBibleLanguageDropdown();
-          console.log('Bibles loaded - Tamil:', !!TAMIL_BIBLE, 'English:', !!ENGLISH_BIBLE, 'Dutch:', !!DUTCH_BIBLE);
+          console.log('Bibles loaded - Tamil:', !!TAMIL_BIBLE, 'Tamil Romanized:', !!TAMIL_ROMANIZED_BIBLE, 'English:', !!ENGLISH_BIBLE, 'Dutch:', !!DUTCH_BIBLE);
         }, 100);
         
         // Update parallel toggle and other buttons
         const parallelToggle = document.getElementById('parallel-toggle');
-        if (ENGLISH_BIBLE || DUTCH_BIBLE || TAMIL_BIBLE) {
+        if (ENGLISH_BIBLE || DUTCH_BIBLE || TAMIL_BIBLE || TAMIL_ROMANIZED_BIBLE) {
           parallelToggle.style.display = 'flex';
           parallelToggle.style.justifyContent = 'center';
           parallelToggle.style.alignItems = 'center';
@@ -1921,6 +1956,14 @@
         select.appendChild(option);
       }
       
+      if (TAMIL_ROMANIZED_BIBLE) {
+        const option = document.createElement('option');
+        option.value = 'tamil-romanized';
+        option.textContent = '📖 Tamil (Romanized)';
+        option.selected = CURRENT_LANGUAGE === 'tamil-romanized';
+        select.appendChild(option);
+      }
+      
       if (ENGLISH_BIBLE) {
         const option = document.createElement('option');
         option.value = 'english';
@@ -1938,8 +1981,8 @@
       }
       
       // Show dropdown if at least one alternative language is available (always show if multiple)
-      const availableCount = (TAMIL_BIBLE ? 1 : 0) + (ENGLISH_BIBLE ? 1 : 0) + (DUTCH_BIBLE ? 1 : 0);
-      console.log('Updating dropdown - Available Bibles:', { Tamil: !!TAMIL_BIBLE, English: !!ENGLISH_BIBLE, Dutch: !!DUTCH_BIBLE, Count: availableCount });
+      const availableCount = (TAMIL_BIBLE ? 1 : 0) + (TAMIL_ROMANIZED_BIBLE ? 1 : 0) + (ENGLISH_BIBLE ? 1 : 0) + (DUTCH_BIBLE ? 1 : 0);
+      console.log('Updating dropdown - Available Bibles:', { Tamil: !!TAMIL_BIBLE, TamilRomanized: !!TAMIL_ROMANIZED_BIBLE, English: !!ENGLISH_BIBLE, Dutch: !!DUTCH_BIBLE, Count: availableCount });
       
       if (availableCount > 1) {
         select.style.display = 'block';
@@ -1957,6 +2000,9 @@
       if (selectedLang === 'tamil' && TAMIL_BIBLE) {
         CURRENT_LANGUAGE = 'tamil';
         CURRENT_BIBLE = TAMIL_BIBLE;
+      } else if (selectedLang === 'tamil-romanized' && TAMIL_ROMANIZED_BIBLE) {
+        CURRENT_LANGUAGE = 'tamil-romanized';
+        CURRENT_BIBLE = TAMIL_ROMANIZED_BIBLE;
       } else if (selectedLang === 'english' && ENGLISH_BIBLE) {
         CURRENT_LANGUAGE = 'english';
         CURRENT_BIBLE = ENGLISH_BIBLE;
@@ -1965,6 +2011,12 @@
         CURRENT_BIBLE = DUTCH_BIBLE;
       } else {
         return; // Invalid selection
+      }
+      
+      // Hide dictionary toggle for non-Tamil languages (including Tamil Romanized)
+      const dictToggle = document.getElementById('dictionary-toggle');
+      if (dictToggle) {
+        dictToggle.style.display = (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB) ? 'flex' : 'none';
       }
       
       // Load last read position for the new language
@@ -2193,6 +2245,7 @@
         // Get Bibles for selected languages
         const getBibleForLang = (lang) => {
           if (lang === 'tamil') return TAMIL_BIBLE;
+          if (lang === 'tamil-romanized') return TAMIL_ROMANIZED_BIBLE;
           if (lang === 'english') return ENGLISH_BIBLE;
           if (lang === 'dutch') return DUTCH_BIBLE;
           return null;
@@ -2200,6 +2253,7 @@
         
         const getLangName = (lang) => {
           if (lang === 'tamil') return 'தமிழ்';
+          if (lang === 'tamil-romanized') return 'Tamil (Romanized)';
           if (lang === 'english') return 'English';
           if (lang === 'dutch') return 'Dutch';
           return lang;
@@ -2207,6 +2261,7 @@
         
         const getLangFont = (lang) => {
           if (lang === 'tamil') return "'Noto Sans Tamil', 'Latha', sans-serif";
+          if (lang === 'tamil-romanized') return "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
           return "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
         };
         
@@ -2300,6 +2355,7 @@
             <label>First Language:</label>
             <select id="parallel-lang1">
               ${TAMIL_BIBLE ? `<option value="tamil" ${PARALLEL_LANG1 === 'tamil' ? 'selected' : ''}>Tamil</option>` : ''}
+              ${TAMIL_ROMANIZED_BIBLE ? `<option value="tamil-romanized" ${PARALLEL_LANG1 === 'tamil-romanized' ? 'selected' : ''}>Tamil (Romanized)</option>` : ''}
               ${ENGLISH_BIBLE ? `<option value="english" ${PARALLEL_LANG1 === 'english' ? 'selected' : ''}>English</option>` : ''}
               ${DUTCH_BIBLE ? `<option value="dutch" ${PARALLEL_LANG1 === 'dutch' ? 'selected' : ''}>Dutch</option>` : ''}
             </select>
@@ -2308,6 +2364,7 @@
             <label>Second Language:</label>
             <select id="parallel-lang2">
               ${TAMIL_BIBLE ? `<option value="tamil" ${PARALLEL_LANG2 === 'tamil' ? 'selected' : ''}>Tamil</option>` : ''}
+              ${TAMIL_ROMANIZED_BIBLE ? `<option value="tamil-romanized" ${PARALLEL_LANG2 === 'tamil-romanized' ? 'selected' : ''}>Tamil (Romanized)</option>` : ''}
               ${ENGLISH_BIBLE ? `<option value="english" ${PARALLEL_LANG2 === 'english' ? 'selected' : ''}>English</option>` : ''}
               ${DUTCH_BIBLE ? `<option value="dutch" ${PARALLEL_LANG2 === 'dutch' ? 'selected' : ''}>Dutch</option>` : ''}
             </select>
