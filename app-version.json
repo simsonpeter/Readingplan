@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2024-01-01T00:00:00Z",
+  "contentFiles": {
+    "plan/njcplan.json": {
+      "version": "1.0.0",
+      "lastModified": "2024-01-01T00:00:00Z"
+    },
+    "bibles/tamilbible.json": {
+      "version": "1.0.0",
+      "lastModified": "2024-01-01T00:00:00Z"
+    },
+    "bibles/englishbible.json": {
+      "version": "1.0.0",
+      "lastModified": "2024-01-01T00:00:00Z"
+    },
+    "bibles/dutchbible.json": {
+      "version": "1.0.0",
+      "lastModified": "2024-01-01T00:00:00Z"
+    },
+    "bibles/tamilromanizedbible.json": {
+      "version": "1.0.0",
+      "lastModified": "2024-01-01T00:00:00Z"
+    },
+    "bibles/tamilredletterbible.json": {
+      "version": "1.0.0",
+      "lastModified": "2024-01-01T00:00:00Z"
+    },
+    "dictionary/TSVPA1975.dictionary.SQLite3": {
+      "version": "1.0.0",
+      "lastModified": "2024-01-01T00:00:00Z"
+    }
+  }
+}
+
