@@ -3754,8 +3754,20 @@
         }
       }, 150);
     }
-    async function shareReadingsAsImage() {
-      if (currentDayIndex === null) return;
+    async function shareReadingsAsImage(dayIndex = null) {
+      // Use provided dayIndex or fall back to currentDayIndex
+      const dayToShare = dayIndex !== null ? dayIndex : currentDayIndex;
+      
+      if (dayToShare === null || dayToShare === undefined) {
+        console.error('No day index provided for sharing');
+        return null;
+      }
+      
+      if (dayToShare < 0 || dayToShare >= READING_PLAN_EN.length) {
+        console.error('Invalid day index:', dayToShare);
+        return null;
+      }
+      
       if (!window.html2canvas) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
@@ -3765,10 +3777,19 @@
           document.head.appendChild(script);
         });
       }
-      const en = READING_PLAN_EN[currentDayIndex];
-      const ta = READING_PLAN_TA[currentDayIndex].morning.map(s => s.replace(/<[^>]*>/g, ''));
-      const eveningTa = READING_PLAN_TA[currentDayIndex].evening.map(s => s.replace(/<[^>]*>/g, ''));
-      const dateStr = document.getElementById('today-date').textContent;
+      
+      const en = READING_PLAN_EN[dayToShare];
+      const ta = READING_PLAN_TA[dayToShare].morning.map(s => s.replace(/<[^>]*>/g, ''));
+      const eveningTa = READING_PLAN_TA[dayToShare].evening.map(s => s.replace(/<[^>]*>/g, ''));
+      
+      // Calculate date string for the day being shared
+      const now = new Date();
+      const year = now.getFullYear();
+      const targetDate = new Date(year, 0, 1);
+      targetDate.setDate(targetDate.getDate() + dayToShare);
+      const dateStr = targetDate.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric'
+      });
       const card = document.createElement('div');
       card.style.cssText = `
         position: fixed;
@@ -3842,9 +3863,35 @@
         }
       }
       
-      // Otherwise, share reading plan (for today or calendar tabs)
+      // For today tab, always share today's content
+      // For calendar tab, share the currently selected day's content
+      let dayIndexToShare = currentDayIndex;
+      
+      if (currentView === 'today') {
+        // Calculate today's day index to ensure we share today's content
+        const now = new Date();
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
+        const nowNormalized = new Date(now);
+        nowNormalized.setHours(12, 0, 0, 0);
+        const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
+        dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+      }
+      
+      // If no day index is set, use today's index as fallback
+      if (dayIndexToShare === null || dayIndexToShare === undefined) {
+        const now = new Date();
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        startOfYear.setHours(12, 0, 0, 0);
+        const nowNormalized = new Date(now);
+        nowNormalized.setHours(12, 0, 0, 0);
+        const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
+        dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+      }
+      
+      // Share reading plan for today or selected day
       try {
-        const blob = await shareReadingsAsImage();
+        const blob = await shareReadingsAsImage(dayIndexToShare);
         if (!blob) throw new Error('Image creation failed');
         const file = new File([blob], 'JOURNEY_Bible_Reading.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
