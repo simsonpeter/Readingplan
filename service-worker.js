@@ -7,7 +7,6 @@ const VERSION_MANIFEST = './app-version.json';
 const CONTENT_FILES = [
   './plan/njcplan.json',
   './bibles/tamilbible.json',
-  './bibles/tamilromanizedbible.json',
   './bibles/englishbible.json',
   './bibles/dutchbible.json',
   './dictionary/TSVPA1975.dictionary.SQLite3',
