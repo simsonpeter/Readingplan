@@ -9,8 +9,6 @@ const CONTENT_FILES = [
   './bibles/tamilbible.json',
   './bibles/englishbible.json',
   './bibles/dutchbible.json',
-  './bibles/tamilromanizedbible.json',
-  './bibles/tamilredletterbible.json',
   './dictionary/TSVPA1975.dictionary.SQLite3',
   './app-version.json'
 ];
