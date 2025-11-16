@@ -245,10 +245,17 @@
       top: 60px;
       z-index: 99;
     }
-    /* Language selector and parallel button - regular positioning, just ensure visibility */
+    /* Language selector and parallel button - make sticky so it stays visible below tabs */
     #bible-view .selector-row:first-of-type {
+      position: sticky;
+      top: 110px; /* Title bar (60px) + tabs (~50px) */
+      z-index: 98; /* Below tabs (99) but above content */
+      background: var(--bg);
       margin-top: 0 !important;
       margin-bottom: 8px !important;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
     }
     .tab-btn {
       flex: 1;
@@ -3740,22 +3747,28 @@
         }, 100);
       }
       
-      // If switching to bible view, ensure language selector is visible and show/hide dictionary toggle
+      // If switching to bible view, ensure controls are visible
       if (view === 'bible') {
         setTimeout(() => {
-          const langSelector = document.getElementById('bible-language-select');
-          if (langSelector) {
-            const rect = langSelector.getBoundingClientRect();
-            const tabsHeight = 120; // title bar + tabs
-            if (rect.top < tabsHeight) {
-              langSelector.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }
           // Show/hide dictionary toggle button (only for Tamil)
           const dictToggle = document.getElementById('dictionary-toggle');
           if (dictToggle) {
             dictToggle.style.display = (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB) ? 'flex' : 'none';
             updateDictionaryToggleButton();
+          }
+          // Ensure parallel toggle is visible if Bibles are available
+          const parallelToggle = document.getElementById('parallel-toggle');
+          if (parallelToggle) {
+            if (ENGLISH_BIBLE || DUTCH_BIBLE || TAMIL_BIBLE || TAMIL_ROMANIZED_BIBLE) {
+              parallelToggle.style.display = 'flex';
+            } else {
+              parallelToggle.style.display = 'none';
+            }
+          }
+          // Ensure language selector is visible
+          const langSelector = document.getElementById('bible-language-select');
+          if (langSelector && langSelector.style.display === 'none') {
+            updateBibleLanguageDropdown();
           }
         }, 100);
       }
