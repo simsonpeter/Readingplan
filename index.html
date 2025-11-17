@@ -3141,6 +3141,9 @@
           return;
         }
         await shareVersesAsImage(data.bookName, data.chapterNum, data.verses);
+      } else if (currentView === 'devotion') {
+        // Share devotion content
+        await shareDevotionAsImage();
       } else {
         // Share reading plan (today or calendar tab)
         // For today tab, always share today's content
@@ -3208,6 +3211,9 @@
           return;
         }
         await shareVersesAsText(data.bookName, data.chapterNum, data.verses);
+      } else if (currentView === 'devotion') {
+        // Share devotion content as text
+        await shareDevotionAsText();
       } else {
         // Share reading plan as text (today or calendar tab)
         // For today tab, always share today's content
@@ -4372,6 +4378,220 @@
           prompt('Copy this text:', textContent);
         }
         document.body.removeChild(textarea);
+      }
+    }
+    
+    // Share devotion as image
+    async function shareDevotionAsImage() {
+      try {
+        const devotionContent = document.getElementById('devotion-content');
+        const devotionDate = document.getElementById('devotion-date');
+        
+        if (!devotionContent || !devotionDate) {
+          alert('Devotion content not available to share.');
+          return;
+        }
+        
+        // Get the date text
+        const dateText = devotionDate.textContent || '';
+        
+        // Create a container for the image
+        const container = document.createElement('div');
+        container.style.cssText = `
+          position: fixed;
+          left: -9999px;
+          width: 600px;
+          padding: 40px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        `;
+        
+        // Clone the devotion content
+        const contentClone = devotionContent.cloneNode(true);
+        contentClone.style.cssText = `
+          background: white;
+          color: #212529;
+          padding: 30px;
+          border-radius: 12px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        `;
+        
+        // Style headings and paragraphs in the clone
+        const headings = contentClone.querySelectorAll('h3');
+        headings.forEach(h => {
+          h.style.cssText = 'margin: 24px 0 12px 0; color: #2c5a8c; font-size: 1.2rem; font-weight: 600; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;';
+        });
+        
+        const paragraphs = contentClone.querySelectorAll('p');
+        paragraphs.forEach(p => {
+          p.style.cssText = 'margin: 12px 0; line-height: 1.8; color: #212529;';
+        });
+        
+        const header = document.createElement('div');
+        header.style.cssText = 'text-align: center; margin-bottom: 20px;';
+        header.innerHTML = `
+          <h1 style="margin: 0; font-size: 1.8rem; font-weight: 600;">Daily Devotion</h1>
+          <p style="margin: 8px 0 0 0; font-size: 1rem; opacity: 0.9;">${dateText}</p>
+        `;
+        
+        const footer = document.createElement('div');
+        footer.style.cssText = 'text-align: center; margin-top: 20px; font-size: 0.9rem; opacity: 0.8;';
+        footer.textContent = '— New Jerusalem Church';
+        
+        container.appendChild(header);
+        container.appendChild(contentClone);
+        container.appendChild(footer);
+        
+        document.body.appendChild(container);
+        
+        if (!window.html2canvas) {
+          alert('Image sharing is not available. Please use text sharing instead.');
+          document.body.removeChild(container);
+          return;
+        }
+        
+        const canvas = await html2canvas(container, {
+          backgroundColor: null,
+          scale: 2,
+          logging: false
+        });
+        
+        document.body.removeChild(container);
+        
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            alert('Failed to create image.');
+            return;
+          }
+          
+          const file = new File([blob], 'JOURNEY_Daily_Devotion.png', { type: 'image/png' });
+          
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                title: 'Daily Devotion',
+                text: `📖 Daily Devotion - ${dateText}`,
+                files: [file]
+              });
+            } catch (err) {
+              if (err.name !== 'AbortError') {
+                console.error('Share failed:', err);
+                // Fallback to download
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'JOURNEY_Daily_Devotion.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }
+            }
+          } else {
+            // Fallback to download
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'JOURNEY_Daily_Devotion.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
+        }, 'image/png');
+      } catch (err) {
+        console.error('Error sharing devotion as image:', err);
+        alert('Failed to share devotion as image.');
+      }
+    }
+    
+    // Share devotion as text
+    async function shareDevotionAsText() {
+      try {
+        const devotionContent = document.getElementById('devotion-content');
+        const devotionDate = document.getElementById('devotion-date');
+        
+        if (!devotionContent || !devotionDate) {
+          alert('Devotion content not available to share.');
+          return;
+        }
+        
+        // Get the date text
+        const dateText = devotionDate.textContent || '';
+        
+        // Extract text content from HTML, preserving structure
+        let textContent = `📖 Daily Devotion - ${dateText}\n\n`;
+        
+        // Get all text nodes and format them
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = devotionContent.innerHTML;
+        
+        // Process headings and paragraphs
+        const headings = tempDiv.querySelectorAll('h3, h4');
+        const paragraphs = tempDiv.querySelectorAll('p');
+        const divs = tempDiv.querySelectorAll('div');
+        
+        // Process in order
+        const allElements = Array.from(tempDiv.children);
+        for (const el of allElements) {
+          if (el.tagName === 'H3' || el.tagName === 'H4') {
+            textContent += `\n${el.textContent.trim()}\n${'='.repeat(el.textContent.trim().length)}\n\n`;
+          } else if (el.tagName === 'P') {
+            textContent += `${el.textContent.trim()}\n\n`;
+          } else if (el.tagName === 'DIV') {
+            // Check if it's a quote (has border-left style or contains quotes)
+            const style = el.getAttribute('style') || '';
+            if (style.includes('border-left') || el.textContent.includes('"')) {
+              textContent += `"${el.textContent.trim()}"\n\n`;
+            } else {
+              textContent += `${el.textContent.trim()}\n\n`;
+            }
+          }
+        }
+        
+        textContent += `\n— New Jerusalem Church`;
+        
+        // Try to use Web Share API first
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: 'Daily Devotion',
+              text: textContent
+            });
+            return;
+          } catch (err) {
+            if (err.name !== 'AbortError') {
+              console.log('Web Share API failed, falling back to clipboard:', err);
+            } else {
+              return; // User cancelled
+            }
+          }
+        }
+        
+        // Fallback: Copy to clipboard
+        try {
+          await navigator.clipboard.writeText(textContent);
+          alert('Devotion text copied to clipboard!');
+        } catch (err) {
+          // Final fallback: Create a textarea and copy
+          const textarea = document.createElement('textarea');
+          textarea.value = textContent;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.select();
+          try {
+            document.execCommand('copy');
+            alert('Devotion text copied to clipboard!');
+          } catch (e) {
+            prompt('Copy this text:', textContent);
+          }
+          document.body.removeChild(textarea);
+        }
+      } catch (err) {
+        console.error('Error sharing devotion as text:', err);
+        alert('Failed to share devotion as text.');
       }
     }
     
