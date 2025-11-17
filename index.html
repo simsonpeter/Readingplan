@@ -3687,6 +3687,8 @@
         const dayStr = String(dayIndex + 1).padStart(3, '0');
         const devotionPath = `devotions/day-${dayStr}.txt`;
         
+        console.log('Loading devotion for day:', dayIndex, 'file:', devotionPath);
+        
         // Update date display
         const now = new Date();
         const year = now.getFullYear();
@@ -3705,6 +3707,7 @@
         // Update "Today" button visibility
         const todayBtn = document.getElementById('devotion-today-btn');
         if (todayBtn) {
+          const startOfYear = new Date(now.getFullYear(), 0, 1);
           const currentDayOfYear = Math.floor((now - startOfYear) / 86400000);
           todayBtn.style.display = (dayIndex === currentDayOfYear && now.getFullYear() === year) ? 'none' : 'flex';
         }
@@ -3716,11 +3719,14 @@
         }
         
         try {
+          console.log('Fetching devotion from:', devotionPath);
           const response = await fetch(devotionPath);
+          console.log('Response status:', response.status, response.ok);
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
           const text = await response.text();
+          console.log('Devotion text loaded, length:', text.length);
           
           if (contentEl) {
             // Format the text - preserve line breaks and paragraphs
@@ -3733,13 +3739,14 @@
             contentEl.innerHTML = `<div style="padding: 8px 0;">${formattedText.replace(/\n\n/g, '</p><p style="margin: 16px 0; line-height: 1.8;">').replace(/^/, '<p style="margin: 16px 0; line-height: 1.8;">').replace(/$/, '</p>')}</div>`;
           }
         } catch (fetchError) {
-          console.warn('Devotion file not found:', devotionPath);
+          console.error('Devotion file not found:', devotionPath, fetchError);
           if (contentEl) {
             contentEl.innerHTML = `
               <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
                 <i class="fas fa-book-open" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i>
                 <p style="font-size: 1.1rem; margin-bottom: 8px;">No devotion available for this day</p>
                 <p style="font-size: 0.9rem; opacity: 0.8;">Add a file: <code style="background: var(--bg); padding: 4px 8px; border-radius: 4px;">devotions/day-${dayStr}.txt</code></p>
+                <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 8px;">Error: ${fetchError.message}</p>
               </div>
             `;
           }
