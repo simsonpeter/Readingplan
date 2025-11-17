@@ -245,17 +245,12 @@
       top: 60px;
       z-index: 99;
     }
-    /* Language selector and parallel button - make sticky so it stays visible below tabs */
+    /* Language selector and parallel button - position at top, below tabs */
     #bible-view .selector-row:first-of-type {
-      position: sticky;
-      top: 110px; /* Title bar (60px) + tabs (~50px) */
-      z-index: 98; /* Below tabs (99) but above content */
-      background: var(--bg);
       margin-top: 0 !important;
       margin-bottom: 8px !important;
       padding-top: 8px;
       padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
     }
     .tab-btn {
       flex: 1;
