@@ -1505,6 +1505,19 @@
       // Switch to Bible tab
       showTab('bible');
       
+      // Ensure Bible view scrolls to top so controls don't overlap with tabs
+      setTimeout(() => {
+        const bibleView = document.getElementById('bible-view');
+        if (bibleView) {
+          bibleView.scrollTop = 0;
+        }
+        // Also scroll the content container to top
+        const content = document.querySelector('.content');
+        if (content) {
+          content.scrollTop = 0;
+        }
+      }, 50);
+      
       setTimeout(() => {
         // Load chapters with the specific chapter index to prevent last position override
         loadChapters(false, safeChapter);
@@ -1519,12 +1532,20 @@
               scrollToVerse(verseIndex);
             }, 100);
           } else {
-            // Scroll to verse display
+            // Scroll to verse display, but ensure we're not overlapping with tabs
             setTimeout(() => {
-              document.getElementById('verse-display').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'start' 
-              });
+              const verseDisplay = document.getElementById('verse-display');
+              if (verseDisplay) {
+                const rect = verseDisplay.getBoundingClientRect();
+                const tabsHeight = 120; // title bar + tabs
+                // Only scroll if verse display is under the tabs
+                if (rect.top < tabsHeight) {
+                  verseDisplay.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                  });
+                }
+              }
             }, 50);
           }
         }, 50);
