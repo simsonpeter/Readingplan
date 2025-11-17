@@ -76,6 +76,11 @@ function isContentFile(url) {
     const urlObj = new URL(url);
     const pathname = urlObj.pathname;
     
+    // Check if it's a devotion file (Network-First strategy)
+    if (pathname.includes('/devotions/') && pathname.endsWith('.txt')) {
+      return true;
+    }
+    
     return CONTENT_FILES.some(contentFile => {
       // Remove leading './' from content file path
       const cleanPath = contentFile.replace(/^\.\//, '');
@@ -84,6 +89,9 @@ function isContentFile(url) {
     });
   } catch (e) {
     // Fallback: simple string matching
+    if (url.includes('/devotions/') && url.endsWith('.txt')) {
+      return true;
+    }
     return CONTENT_FILES.some(contentFile => {
       const cleanPath = contentFile.replace(/^\.\//, '');
       return url.includes(cleanPath);

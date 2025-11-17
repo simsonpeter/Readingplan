@@ -998,6 +998,7 @@
     <button class="tab-btn active" onclick="showTab('today')">Today</button>
     <button class="tab-btn" onclick="showTab('calendar')">Calendar</button>
     <button class="tab-btn" onclick="showTab('bible')">Bible</button>
+    <button class="tab-btn" onclick="showTab('devotion')">Devotion</button>
   </div>
   <div class="content">
     <div id="today-view">
@@ -1014,6 +1015,30 @@
       </div>
     </div>
     <div id="calendar-view"></div>
+    <div id="devotion-view" style="display: none;">
+      <div class="card" id="devotion-date-card">
+        <div class="date-text" id="devotion-date">Loading...</div>
+      </div>
+      <div class="card" id="devotion-content-card">
+        <div id="devotion-content" style="line-height: 1.8; white-space: pre-wrap; font-size: 1rem; color: var(--text);">
+          <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i>
+            <p>Loading devotion...</p>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center;">
+        <button onclick="goToDevotionDay(-1)" class="nav-btn" style="flex: 1; max-width: 150px;">
+          <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        <button onclick="goToDevotionToday()" class="nav-btn" id="devotion-today-btn" style="flex: 1; max-width: 150px; display: none;">
+          <i class="fas fa-calendar-day"></i> Today
+        </button>
+        <button onclick="goToDevotionDay(1)" class="nav-btn" style="flex: 1; max-width: 150px;">
+          Next <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
     <div id="bible-view">
       <div class="selector-row" style="margin-bottom: 8px; gap: 8px; margin-top: 8px;">
         <select id="bible-language-select" onchange="switchBibleLanguage()" style="flex: 1; min-width: 140px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; display: none; appearance: none; background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'white\'%3E%3Cpath d=\'M7 10l5 5 5-5z\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 8px center; background-size: 20px; padding-right: 35px;">
@@ -3559,6 +3584,7 @@
 
     // === CORE APP FUNCTIONS (theme, calendar, etc.) ===
     let currentDayIndex = null;
+    let currentDevotionDayIndex = null;
     let currentView = 'today';
     function isDarkMode() { return document.body.classList.contains('dark-mode'); }
     function setTheme(dark) {
@@ -3644,6 +3670,113 @@
         console.error('Error loading user settings:', err);
       }
     }
+    async function loadDevotion(dayIndex = null) {
+      try {
+        // Calculate day index if not provided
+        if (dayIndex === null) {
+          const now = new Date();
+          const startOfYear = new Date(now.getFullYear(), 0, 1);
+          const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+          dayIndex = dayOfYear;
+        }
+        
+        // Store current devotion day index
+        currentDevotionDayIndex = dayIndex;
+        
+        // Format day index as 3-digit string (001, 002, etc.)
+        const dayStr = String(dayIndex + 1).padStart(3, '0');
+        const devotionPath = `devotions/day-${dayStr}.txt`;
+        
+        // Update date display
+        const now = new Date();
+        const year = now.getFullYear();
+        const targetDate = new Date(year, 0, 1);
+        targetDate.setDate(targetDate.getDate() + dayIndex);
+        const dateEl = document.getElementById('devotion-date');
+        if (dateEl) {
+          dateEl.textContent = targetDate.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        }
+        
+        // Update "Today" button visibility
+        const todayBtn = document.getElementById('devotion-today-btn');
+        if (todayBtn) {
+          const currentDayOfYear = Math.floor((now - startOfYear) / 86400000);
+          todayBtn.style.display = (dayIndex === currentDayOfYear && now.getFullYear() === year) ? 'none' : 'flex';
+        }
+        
+        // Load devotion text file
+        const contentEl = document.getElementById('devotion-content');
+        if (contentEl) {
+          contentEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i><p>Loading devotion...</p></div>';
+        }
+        
+        try {
+          const response = await fetch(devotionPath);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const text = await response.text();
+          
+          if (contentEl) {
+            // Format the text - preserve line breaks and paragraphs
+            const formattedText = text
+              .split('\n')
+              .map(line => line.trim())
+              .filter(line => line.length > 0)
+              .join('\n\n');
+            
+            contentEl.innerHTML = `<div style="padding: 8px 0;">${formattedText.replace(/\n\n/g, '</p><p style="margin: 16px 0; line-height: 1.8;">').replace(/^/, '<p style="margin: 16px 0; line-height: 1.8;">').replace(/$/, '</p>')}</div>`;
+          }
+        } catch (fetchError) {
+          console.warn('Devotion file not found:', devotionPath);
+          if (contentEl) {
+            contentEl.innerHTML = `
+              <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                <i class="fas fa-book-open" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p style="font-size: 1.1rem; margin-bottom: 8px;">No devotion available for this day</p>
+                <p style="font-size: 0.9rem; opacity: 0.8;">Add a file: <code style="background: var(--bg); padding: 4px 8px; border-radius: 4px;">devotions/day-${dayStr}.txt</code></p>
+              </div>
+            `;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading devotion:', error);
+        const contentEl = document.getElementById('devotion-content');
+        if (contentEl) {
+          contentEl.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+              <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i>
+              <p style="font-size: 1.1rem;">Error loading devotion</p>
+            </div>
+          `;
+        }
+      }
+    }
+    function goToDevotionDay(offset) {
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const currentDayOfYear = Math.floor((now - startOfYear) / 86400000);
+      const maxDays = 365; // Maximum days in a year
+      
+      let targetDay = currentDevotionDayIndex !== null ? currentDevotionDayIndex : currentDayOfYear;
+      targetDay += offset;
+      targetDay = Math.max(0, Math.min(maxDays - 1, targetDay));
+      
+      loadDevotion(targetDay);
+      if (currentView !== 'devotion') showTab('devotion');
+    }
+    function goToDevotionToday() {
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+      loadDevotion(dayOfYear);
+      if (currentView !== 'devotion') showTab('devotion');
+    }
     function renderReadings(dayIndex) {
       if (dayIndex < 0 || dayIndex >= READING_PLAN_EN.length) return;
       const now = new Date();
@@ -3719,13 +3852,14 @@
       // Save current view
       saveUserSettings();
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      const tabIndex = ['today','calendar','bible'].indexOf(view);
+      const tabIndex = ['today','calendar','bible','devotion'].indexOf(view);
       if (tabIndex >= 0) {
         document.querySelectorAll('.tab-btn')[tabIndex].classList.add('active');
       }
       document.getElementById('today-view').style.display = view === 'today' ? 'flex' : 'none';
       document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
       document.getElementById('bible-view').style.display = view === 'bible' ? 'block' : 'none';
+      document.getElementById('devotion-view').style.display = view === 'devotion' ? 'block' : 'none';
       
       // If switching to today view, ensure date card is visible
       if (view === 'today') {
@@ -3815,6 +3949,20 @@
           const dayOfYear = Math.floor((now - startOfYear) / 86400000);
           renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
         }
+      } else if (view === 'devotion') {
+        // Load devotion for today
+        loadDevotion();
+        // Ensure date card is visible when switching to devotion view
+        setTimeout(() => {
+          const dateCard = document.getElementById('devotion-date-card');
+          if (dateCard) {
+            const rect = dateCard.getBoundingClientRect();
+            const tabsHeight = 120; // title bar + tabs
+            if (rect.top < tabsHeight) {
+              dateCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }
+        }, 100);
       } else if (view === 'bible') {
         // When switching to Bible tab, ensure last read position is loaded
         const bookSelect = document.getElementById('book-select');
