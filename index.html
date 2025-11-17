@@ -311,9 +311,40 @@
     }
     #devotion-content-card {
       flex-shrink: 0; /* Don't shrink the card, let the view scroll */
+      text-align: left; /* Override card's center alignment */
+      align-items: flex-start; /* Align content to start */
     }
     #devotion-content {
       overflow: visible;
+    }
+    #devotion-content h3 {
+      margin: 32px 0 16px 0;
+      padding-bottom: 8px;
+      color: var(--accent);
+      font-size: 1.3rem;
+      font-weight: 600;
+      border-bottom: 2px solid var(--border);
+    }
+    #devotion-content h3:first-child {
+      margin-top: 0;
+    }
+    #devotion-content h4 {
+      margin: 20px 0 12px 0;
+      color: var(--text);
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    #devotion-content p {
+      margin: 16px 0;
+      line-height: 1.9;
+      color: var(--text);
+      text-align: justify;
+    }
+    #devotion-content p:first-of-type {
+      margin-top: 0;
+    }
+    #devotion-content p:last-of-type {
+      margin-bottom: 0;
     }
     .card {
       background: var(--card);
@@ -3745,14 +3776,62 @@
           console.log('Devotion text loaded, length:', text.length);
           
           if (contentEl) {
-            // Format the text - preserve line breaks and paragraphs
-            const formattedText = text
-              .split('\n')
-              .map(line => line.trim())
-              .filter(line => line.length > 0)
-              .join('\n\n');
+            // Format the text with beautiful styling
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            let html = '';
+            let inQuote = false;
             
-            contentEl.innerHTML = `<div style="padding: 8px 0;">${formattedText.replace(/\n\n/g, '</p><p style="margin: 16px 0; line-height: 1.8;">').replace(/^/, '<p style="margin: 16px 0; line-height: 1.8;">').replace(/$/, '</p>')}</div>`;
+            // Section headers to style as headings
+            const sectionHeaders = [
+              'மனப்பாட வசனம்',
+              'இன்றைய தியானம்',
+              'இன்றைய மேற்கோள்',
+              'பரிந்துரைக்கப்படும் புத்தகம்',
+              'ஜெபம்',
+              'உங்களுக்கு ஒரு வார்த்தை',
+              'Memory Verse',
+              'Today\'s Meditation',
+              'Today\'s Quote',
+              'Recommended Book',
+              'Prayer',
+              'A Word for You'
+            ];
+            
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              const isHeader = sectionHeaders.some(header => line.includes(header));
+              
+              // Check if line is a quote (starts with " or contains quote marks)
+              if (line.startsWith('"') || (line.includes('"') && line.length < 200)) {
+                html += `<div style="margin: 24px 0; padding: 20px; background: var(--bg); border-left: 4px solid var(--accent); border-radius: 8px; font-style: italic; color: var(--text-secondary); line-height: 1.8;">${line}</div>`;
+                inQuote = true;
+              } else if (isHeader) {
+                // Section header
+                html += `<h3 style="margin: 32px 0 16px 0; padding-bottom: 8px; color: var(--accent); font-size: 1.3rem; font-weight: 600; border-bottom: 2px solid var(--border);">${line}</h3>`;
+                inQuote = false;
+              } else if (line.match(/^[A-Za-z\s]+:$/) || line.match(/^[அ-ஹ\s]+:$/)) {
+                // Sub-heading (ends with colon)
+                html += `<h4 style="margin: 20px 0 12px 0; color: var(--text); font-size: 1.1rem; font-weight: 600;">${line}</h4>`;
+                inQuote = false;
+              } else if (line.startsWith('—') || line.startsWith('-')) {
+                // Citation or attribution
+                html += `<p style="margin: 12px 0; padding-left: 20px; color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">${line}</p>`;
+                inQuote = false;
+              } else if (line.match(/^by\s+/i) || line.match(/^—\s*/)) {
+                // Author line
+                html += `<p style="margin: 8px 0 20px 0; text-align: right; color: var(--text-secondary); font-size: 0.9rem;">${line}</p>`;
+                inQuote = false;
+              } else {
+                // Regular paragraph
+                const paragraphStyle = inQuote 
+                  ? 'margin: 12px 0; line-height: 1.8; color: var(--text-secondary);'
+                  : 'margin: 16px 0; line-height: 1.9; color: var(--text); text-align: justify;';
+                html += `<p style="${paragraphStyle}">${line}</p>`;
+                inQuote = false;
+              }
+            }
+            
+            contentEl.innerHTML = `<div style="padding: 8px 0; max-width: 100%;">${html}</div>`;
           }
         } catch (fetchError) {
           console.error('Devotion file not found:', devotionPath, fetchError);
