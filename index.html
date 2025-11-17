@@ -299,6 +299,22 @@
     #today-view #date-card {
       scroll-margin-top: 120px;
     }
+    #devotion-view {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding-top: 0; /* Already has padding from .content */
+      min-height: 0; /* Allows flex child to shrink and enable scrolling */
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #devotion-content-card {
+      flex-shrink: 0; /* Don't shrink the card, let the view scroll */
+    }
+    #devotion-content {
+      overflow: visible;
+    }
     .card {
       background: var(--card);
       border: 1px solid var(--border);
