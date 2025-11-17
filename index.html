@@ -4495,21 +4495,50 @@
 
     // === INIT ===
     window.addEventListener('load', () => {
-      // Hide splash screen after app loads
-      const splashScreen = document.getElementById('splash-screen');
-      if (splashScreen) {
-        // Wait a minimum time for smooth animation (1.5 seconds)
-        setTimeout(() => {
-          splashScreen.classList.add('hidden');
-          // Remove from DOM after animation completes
-          setTimeout(() => {
-            splashScreen.remove();
-          }, 500);
-        }, 1500);
-      }
-      
       applySavedTheme();
-      loadAppData();
+      
+      // Hide splash screen after app loads and data is ready
+      const splashScreen = document.getElementById('splash-screen');
+      let dataLoaded = false;
+      let minDisplayTime = 3000; // Minimum 3 seconds for splash screen
+      const startTime = Date.now();
+      
+      // Function to hide splash screen
+      const hideSplash = () => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, minDisplayTime - elapsed);
+        
+        setTimeout(() => {
+          if (splashScreen) {
+            splashScreen.classList.add('hidden');
+            // Remove from DOM after animation completes
+            setTimeout(() => {
+              if (splashScreen.parentNode) {
+                splashScreen.remove();
+              }
+            }, 500);
+          }
+        }, remaining);
+      };
+      
+      // Load app data and hide splash when done
+      loadAppData().then(() => {
+        dataLoaded = true;
+        hideSplash();
+      }).catch((err) => {
+        console.error('Error loading app data:', err);
+        // Still hide splash even if there's an error
+        dataLoaded = true;
+        hideSplash();
+      });
+      
+      // Fallback: hide splash after maximum time (5 seconds) even if data hasn't loaded
+      setTimeout(() => {
+        if (!dataLoaded && splashScreen) {
+          dataLoaded = true;
+          hideSplash();
+        }
+      }, 5000);
       
       // Set initial button visibility based on current tab
       const markReadBtn = document.getElementById('mark-read-btn');
