@@ -426,6 +426,7 @@
     }
     .selector-row {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 12px;
       padding: 0 8px; /* Add horizontal padding only for selector row */
@@ -1094,7 +1095,7 @@
           <option value="english">📖 English</option>
           <option value="dutch">📖 Dutch</option>
         </select>
-        <select id="dictionary-selector" onchange="selectDictionary()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; margin-left: 8px; appearance: none; -webkit-appearance: none; -moz-appearance: none; padding-right: 30px;">
+        <select id="dictionary-selector" onchange="selectDictionary()" style="display: none; flex: 0 1 auto; min-width: 0; max-width: 200px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; margin-left: 8px; appearance: none; -webkit-appearance: none; -moz-appearance: none; padding-right: 30px; overflow: hidden; text-overflow: ellipsis;">
           <option value="off">📖 Dictionary OFF</option>
         </select>
         <button id="dictionary-toggle" onclick="toggleDictionary()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; margin-left: 8px;">
@@ -3068,10 +3069,10 @@
       
       if (CURRENT_LANGUAGE === 'english') {
         if (ENGLISH_DICTIONARY_DB) {
-          availableDicts.push({ value: 'easton', label: '📖 Easton Dictionary' });
+          availableDicts.push({ value: 'easton', label: '📖 Easton' });
         }
         if (ROBINSON_DICTIONARY_DB) {
-          availableDicts.push({ value: 'robinson', label: '📖 Robinson (Morphological Codes)' });
+          availableDicts.push({ value: 'robinson', label: '📖 Robinson' });
         }
       }
       
