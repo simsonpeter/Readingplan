@@ -25,6 +25,10 @@
     "dictionary/TSVPA1975.dictionary.SQLite3": {
       "version": "1.0.0",
       "lastModified": "2025-11-03T19:04:13.727Z"
+    },
+    "dictionary/easton_dictionary.SQLite3": {
+      "version": "1.0.0",
+      "lastModified": "2025-11-18T18:10:33.128Z"
     }
   }
 }

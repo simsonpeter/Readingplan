@@ -1192,7 +1192,8 @@
     let READING_PLAN_TA = [];
     let TAMIL_MAP = {};
     let BOOK_INDEX_MAP = {}; // Maps English abbreviations to book indices
-    let DICTIONARY_DB = null; // SQLite dictionary database
+    let DICTIONARY_DB = null; // SQLite dictionary database (Tamil)
+    let ENGLISH_DICTIONARY_DB = null; // SQLite dictionary database (English - Easton)
     const TAMIL_BOOK_NAMES = [
       "ஆதியாகமம்", "யாத்திராகமம்", "லேவியராகமம்", "எண்ணாகமம்", "உபாகமம்", "யோசுவா", "நியாயாதிபதிகள்", "ரூத்", "1 சாமுவேல்",
       "2 சாமுவேல்", "1 இராஜாக்கள்", "2 இராஜாக்கள்", "1 நாளாகமம்", "2 நாளாகமம்", "எஸ்றா", "நெகேமியா", "எஸ்தர்", "யோபு",
@@ -1882,6 +1883,41 @@
           console.error('❌ Could not load dictionary:', dictErr);
         }
         
+        // Load English Bible Dictionary (Easton's Dictionary)
+        try {
+          console.log('📚 Loading English Bible Dictionary (Easton)...');
+          
+          // SQL.js should already be loaded from Tamil dictionary
+          if (typeof initSqlJs !== 'undefined') {
+            const englishDictRes = await fetch('dictionary/easton_dictionary.SQLite3');
+            if (englishDictRes.ok) {
+              const englishDictArrayBuffer = await englishDictRes.arrayBuffer();
+              SQL = await initSqlJs({
+                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+              });
+              ENGLISH_DICTIONARY_DB = new SQL.Database(new Uint8Array(englishDictArrayBuffer));
+              const countResult = ENGLISH_DICTIONARY_DB.exec('SELECT COUNT(*) FROM dictionary');
+              if (countResult.length > 0 && countResult[0].values.length > 0) {
+                console.log('✅ English Dictionary database loaded with', countResult[0].values[0][0], 'entries');
+                // Show dictionary toggle button if viewing English Bible
+                const dictToggle = document.getElementById('dictionary-toggle');
+                if (dictToggle && CURRENT_LANGUAGE === 'english') {
+                  dictToggle.style.display = 'flex';
+                  updateDictionaryToggleButton();
+                }
+                // Reload verses if we're already viewing English Bible
+                if (CURRENT_LANGUAGE === 'english' && CURRENT_BIBLE) {
+                  setTimeout(() => loadVerses(), 100);
+                }
+              }
+            } else {
+              console.warn('⚠️ English dictionary file not found, skipping');
+            }
+          }
+        } catch (englishDictErr) {
+          console.warn('⚠️ Could not load English dictionary:', englishDictErr);
+        }
+        
         // Load Tamil Bible
         const bibleRes = await fetch('bibles/tamilbible.json');
         const bibleData = await bibleRes.json();
@@ -2302,10 +2338,15 @@
         return; // Invalid selection
       }
       
-      // Hide dictionary toggle for non-Tamil languages (including Tamil Romanized)
+      // Show dictionary toggle for Tamil and English languages (if dictionary is loaded)
       const dictToggle = document.getElementById('dictionary-toggle');
       if (dictToggle) {
-        dictToggle.style.display = (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB) ? 'flex' : 'none';
+        const hasTamilDict = CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB;
+        const hasEnglishDict = CURRENT_LANGUAGE === 'english' && ENGLISH_DICTIONARY_DB;
+        dictToggle.style.display = (hasTamilDict || hasEnglishDict) ? 'flex' : 'none';
+        if (hasTamilDict || hasEnglishDict) {
+          updateDictionaryToggleButton();
+        }
       }
       
       // Load last read position for the new language
@@ -2623,10 +2664,12 @@
           const verseKey = `${bookIndex}-${chapterIndex}-${verseIndex}`;
           const isSelected = SELECTED_VERSES.has(verseKey);
           const selectedClass = isSelected ? 'verse-selected' : '';
-          // Make words in verse clickable for dictionary lookup (only for Tamil, if dictionary is enabled, and only if word exists in dictionary)
+          // Make words in verse clickable for dictionary lookup (for Tamil and English, if dictionary is enabled, and only if word exists in dictionary)
           let verseWithDictionary = verseText;
           if (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB && DICTIONARY_ENABLED) {
             verseWithDictionary = makeWordsClickable(verseText);
+          } else if (CURRENT_LANGUAGE === 'english' && ENGLISH_DICTIONARY_DB && DICTIONARY_ENABLED) {
+            verseWithDictionary = makeEnglishWordsClickable(verseText);
           }
           html += `<p data-verse-key="${verseKey}" class="${selectedClass}" 
             oncontextmenu="event.preventDefault(); return false;"
@@ -2782,9 +2825,52 @@
       return result;
     }
     
+    // Make English words clickable for dictionary lookup (only if they exist in dictionary)
+    function makeEnglishWordsClickable(text) {
+      if (!ENGLISH_DICTIONARY_DB) {
+        return text;
+      }
+      if (!text || text.trim() === '') return text;
+      
+      // Match English words (2+ alphabetic characters, case-insensitive)
+      // Only make words clickable if they exist in the dictionary
+      const result = text.replace(/\b([A-Za-z]{2,})\b/g, (match) => {
+        // Check if word exists in dictionary (quick check)
+        try {
+          // Convert to title case (first letter uppercase, rest lowercase) for dictionary lookup
+          const titleCaseWord = match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
+          const escapedWord = titleCaseWord.replace(/'/g, "''");
+          
+          // Check if word exists in dictionary table (case-insensitive search)
+          let query = `SELECT topic FROM dictionary WHERE LOWER(topic) = LOWER('${escapedWord}') LIMIT 1`;
+          let result = ENGLISH_DICTIONARY_DB.exec(query);
+          
+          // Only make clickable if word exists in dictionary
+          if (result.length > 0 && result[0].values.length > 0) {
+            const escaped = match.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return `<span class="dictionary-word" data-word="${escaped}" 
+              onclick="lookupDictionary('${escaped}'); event.stopPropagation(); event.preventDefault(); return false;"
+              ontouchstart="event.stopPropagation();"
+              onmousedown="event.stopPropagation();">${match}</span>`;
+          }
+        } catch (err) {
+          // If error, don't make clickable
+          console.warn('Dictionary check error for word:', match, err);
+        }
+        
+        // Return original word if not in dictionary
+        return match;
+      });
+      
+      return result;
+    }
+    
     // Lookup word in dictionary
     function lookupDictionary(word) {
-      if (!DICTIONARY_DB) {
+      // Determine which dictionary to use based on current language
+      const dictDB = CURRENT_LANGUAGE === 'english' ? ENGLISH_DICTIONARY_DB : DICTIONARY_DB;
+      
+      if (!dictDB) {
         alert('Dictionary not loaded yet. Please wait...');
         return;
       }
@@ -2792,35 +2878,55 @@
       try {
         // Escape single quotes in word for SQL query
         const escapedWord = word.replace(/'/g, "''");
+        let result;
+        let topic, definition;
         
-        // First, check if word exists in words table (variations)
-        let query = `SELECT standard_form FROM words WHERE variation = '${escapedWord}' LIMIT 1`;
-        let result = DICTIONARY_DB.exec(query);
-        let standardWord = word;
-        
-        if (result.length > 0 && result[0].values.length > 0) {
-          standardWord = result[0].values[0][0];
+        if (CURRENT_LANGUAGE === 'english') {
+          // English dictionary lookup (case-insensitive)
+          const query = `SELECT topic, definition FROM dictionary WHERE LOWER(topic) = LOWER('${escapedWord}') LIMIT 1`;
+          result = dictDB.exec(query);
+          
+          if (result.length > 0 && result[0].values.length > 0) {
+            [topic, definition] = result[0].values[0];
+          }
+        } else {
+          // Tamil dictionary lookup (with variations support)
+          // First, check if word exists in words table (variations)
+          let query = `SELECT standard_form FROM words WHERE variation = '${escapedWord}' LIMIT 1`;
+          result = dictDB.exec(query);
+          let standardWord = word;
+          
+          if (result.length > 0 && result[0].values.length > 0) {
+            standardWord = result[0].values[0][0];
+          }
+          
+          // Escape standard word for SQL query
+          const escapedStandard = standardWord.replace(/'/g, "''");
+          
+          // Lookup in dictionary table
+          query = `SELECT topic, definition FROM dictionary WHERE topic = '${escapedStandard}' LIMIT 1`;
+          result = dictDB.exec(query);
+          
+          if (result.length > 0 && result[0].values.length > 0) {
+            [topic, definition] = result[0].values[0];
+          }
         }
-        
-        // Escape standard word for SQL query
-        const escapedStandard = standardWord.replace(/'/g, "''");
-        
-        // Lookup in dictionary table
-        query = `SELECT topic, definition FROM dictionary WHERE topic = '${escapedStandard}' LIMIT 1`;
-        result = DICTIONARY_DB.exec(query);
         
         const modal = document.getElementById('dictionary-modal');
         const title = document.getElementById('dictionary-title');
         const content = document.getElementById('dictionary-content');
         
-        if (result.length > 0 && result[0].values.length > 0) {
-          const [topic, definition] = result[0].values[0];
+        if (topic && definition) {
           title.textContent = `📖 ${topic}`;
           content.innerHTML = definition;
           modal.classList.add('active');
         } else {
           title.textContent = `📖 ${word}`;
-          content.innerHTML = `<p style="color: var(--text-secondary);">இந்த சொல்லுக்கான வரையறை கிடைக்கவில்லை.</p><p style="margin-top: 12px; font-size: 0.9rem;">No definition found for this word.</p>`;
+          if (CURRENT_LANGUAGE === 'english') {
+            content.innerHTML = `<p style="color: var(--text-secondary);">No definition found for this word.</p>`;
+          } else {
+            content.innerHTML = `<p style="color: var(--text-secondary);">இந்த சொல்லுக்கான வரையறை கிடைக்கவில்லை.</p><p style="margin-top: 12px; font-size: 0.9rem;">No definition found for this word.</p>`;
+          }
           modal.classList.add('active');
         }
       } catch (err) {
@@ -4011,7 +4117,9 @@
           // Show/hide dictionary toggle button (only for Tamil)
           const dictToggle = document.getElementById('dictionary-toggle');
           if (dictToggle) {
-            dictToggle.style.display = (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB) ? 'flex' : 'none';
+            const hasTamilDict = CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB;
+            const hasEnglishDict = CURRENT_LANGUAGE === 'english' && ENGLISH_DICTIONARY_DB;
+            dictToggle.style.display = (hasTamilDict || hasEnglishDict) ? 'flex' : 'none';
             updateDictionaryToggleButton();
           }
           // Ensure parallel toggle is visible if Bibles are available
@@ -4805,7 +4913,9 @@
       // Initialize dictionary toggle button visibility
       const dictToggle = document.getElementById('dictionary-toggle');
       if (dictToggle) {
-        dictToggle.style.display = (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB) ? 'flex' : 'none';
+        const hasTamilDict = CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB;
+        const hasEnglishDict = CURRENT_LANGUAGE === 'english' && ENGLISH_DICTIONARY_DB;
+        dictToggle.style.display = (hasTamilDict || hasEnglishDict) ? 'flex' : 'none';
         updateDictionaryToggleButton();
       }
     });
