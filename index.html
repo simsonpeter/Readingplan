@@ -2995,7 +2995,18 @@
         } else {
           title.textContent = `📖 ${word}`;
           if (CURRENT_LANGUAGE === 'english') {
-            content.innerHTML = `<p style="color: var(--text-secondary);">No definition found for this word.</p>`;
+            if (SELECTED_DICTIONARY === 'robinson') {
+              content.innerHTML = `<p style="color: var(--text-secondary); margin-bottom: 12px;">No match found for "${word}".</p>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                  <strong>Note:</strong> Robinson's Morphological Dictionary contains morphological analysis codes (like "A-APF", "V-RPP-NSM") 
+                  that explain Greek/Hebrew word forms, not regular English words.
+                </p>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 12px;">
+                  For word definitions, please use <strong>Easton Dictionary</strong> instead.
+                </p>`;
+            } else {
+              content.innerHTML = `<p style="color: var(--text-secondary);">No definition found for this word.</p>`;
+            }
           } else {
             content.innerHTML = `<p style="color: var(--text-secondary);">இந்த சொல்லுக்கான வரையறை கிடைக்கவில்லை.</p><p style="margin-top: 12px; font-size: 0.9rem;">No definition found for this word.</p>`;
           }
@@ -3060,7 +3071,7 @@
           availableDicts.push({ value: 'easton', label: '📖 Easton Dictionary' });
         }
         if (ROBINSON_DICTIONARY_DB) {
-          availableDicts.push({ value: 'robinson', label: '📖 Robinson Morphological' });
+          availableDicts.push({ value: 'robinson', label: '📖 Robinson (Morphological Codes)' });
         }
       }
       
@@ -3101,6 +3112,11 @@
         // No dictionaries: hide both
         selector.style.display = 'none';
         if (toggle) toggle.style.display = 'none';
+      }
+      
+      // Always ensure button state is correct if toggle button is visible
+      if (toggle && toggle.style.display === 'flex') {
+        updateDictionaryToggleButton();
       }
     }
     
@@ -3993,8 +4009,18 @@
           const settings = JSON.parse(saved);
           if (settings.currentLanguage) CURRENT_LANGUAGE = settings.currentLanguage;
           if (typeof settings.parallelMode === 'boolean') PARALLEL_MODE = settings.parallelMode;
-          if (typeof settings.dictionaryEnabled === 'boolean') DICTIONARY_ENABLED = settings.dictionaryEnabled;
-          if (settings.selectedDictionary) SELECTED_DICTIONARY = settings.selectedDictionary;
+          if (typeof settings.dictionaryEnabled === 'boolean') {
+            DICTIONARY_ENABLED = settings.dictionaryEnabled;
+          } else {
+            // Default to false if not set
+            DICTIONARY_ENABLED = false;
+          }
+          if (settings.selectedDictionary && settings.dictionaryEnabled) {
+            SELECTED_DICTIONARY = settings.selectedDictionary;
+          } else {
+            // Clear selected dictionary if dictionary is disabled
+            SELECTED_DICTIONARY = null;
+          }
           if (settings.parallelLang1) PARALLEL_LANG1 = settings.parallelLang1;
           if (settings.parallelLang2) PARALLEL_LANG2 = settings.parallelLang2;
           if (settings.currentView) currentView = settings.currentView;
@@ -5087,14 +5113,8 @@
         }
       }
       
-      // Initialize dictionary toggle button visibility
-      const dictToggle = document.getElementById('dictionary-toggle');
-      if (dictToggle) {
-        const hasTamilDict = CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB;
-        const hasEnglishDict = CURRENT_LANGUAGE === 'english' && (ENGLISH_DICTIONARY_DB || ROBINSON_DICTIONARY_DB);
-        dictToggle.style.display = (hasTamilDict || hasEnglishDict) ? 'flex' : 'none';
-        updateDictionaryToggleButton();
-      }
+      // Initialize dictionary selector/toggle button
+      updateDictionarySelector();
     });
   </script>
 </body>
