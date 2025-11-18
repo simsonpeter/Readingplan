@@ -12,6 +12,7 @@ const CONTENT_FILES = [
   './bibles/dutchbible.json',
   './dictionary/TSVPA1975.dictionary.SQLite3',
   './dictionary/easton_dictionary.SQLite3',
+  './dictionary/robinson_morphological.SQLite3',
   './app-version.json'
 ];
 

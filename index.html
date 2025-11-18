@@ -1094,6 +1094,9 @@
           <option value="english">📖 English</option>
           <option value="dutch">📖 Dutch</option>
         </select>
+        <select id="dictionary-selector" onchange="selectDictionary()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; margin-left: 8px; appearance: none; -webkit-appearance: none; -moz-appearance: none; padding-right: 30px;">
+          <option value="off">📖 Dictionary OFF</option>
+        </select>
         <button id="dictionary-toggle" onclick="toggleDictionary()" style="display: none; flex: 0 0 auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; margin-left: 8px;">
           <i class="fas fa-book"></i> <span id="dictionary-text">Dictionary</span>
         </button>
@@ -1184,7 +1187,8 @@
     let CURRENT_BIBLE = null; // Currently active Bible (TAMIL_BIBLE, TAMIL_ROMANIZED_BIBLE, ENGLISH_BIBLE, or DUTCH_BIBLE)
     let CURRENT_LANGUAGE = 'tamil'; // 'tamil', 'tamil-romanized', 'english', or 'dutch'
     let PARALLEL_MODE = false; // Parallel reading mode
-    let DICTIONARY_ENABLED = true; // Toggle for dictionary word highlighting in Tamil Bible
+    let DICTIONARY_ENABLED = false; // Toggle for dictionary word highlighting (OFF by default)
+    let SELECTED_DICTIONARY = null; // Selected dictionary: 'tamil', 'easton', 'robinson', or null
     let PARALLEL_LANG1 = 'tamil'; // First language for parallel reading
     let PARALLEL_LANG2 = 'english'; // Second language for parallel reading
     let SELECTED_VERSES = new Set(); // Track selected verses for sharing
@@ -1194,6 +1198,7 @@
     let BOOK_INDEX_MAP = {}; // Maps English abbreviations to book indices
     let DICTIONARY_DB = null; // SQLite dictionary database (Tamil)
     let ENGLISH_DICTIONARY_DB = null; // SQLite dictionary database (English - Easton)
+    let ROBINSON_DICTIONARY_DB = null; // SQLite dictionary database (English - Robinson's Morphological)
     const TAMIL_BOOK_NAMES = [
       "ஆதியாகமம்", "யாத்திராகமம்", "லேவியராகமம்", "எண்ணாகமம்", "உபாகமம்", "யோசுவா", "நியாயாதிபதிகள்", "ரூத்", "1 சாமுவேல்",
       "2 சாமுவேல்", "1 இராஜாக்கள்", "2 இராஜாக்கள்", "1 நாளாகமம்", "2 நாளாகமம்", "எஸ்றா", "நெகேமியா", "எஸ்தர்", "யோபு",
@@ -1862,12 +1867,8 @@
               const countResult = DICTIONARY_DB.exec('SELECT COUNT(*) FROM dictionary');
               if (countResult.length > 0 && countResult[0].values.length > 0) {
                 console.log('✅ Dictionary database loaded with', countResult[0].values[0][0], 'entries');
-                // Show dictionary toggle button if viewing Tamil Bible
-                const dictToggle = document.getElementById('dictionary-toggle');
-                if (dictToggle && CURRENT_LANGUAGE === 'tamil') {
-                  dictToggle.style.display = 'flex';
-                  updateDictionaryToggleButton();
-                }
+                // Update dictionary selector
+                updateDictionarySelector();
                 // Reload verses if we're already viewing Tamil Bible
                 if (CURRENT_LANGUAGE === 'tamil' && CURRENT_BIBLE) {
                   setTimeout(() => loadVerses(), 100);
@@ -1899,12 +1900,8 @@
               const countResult = ENGLISH_DICTIONARY_DB.exec('SELECT COUNT(*) FROM dictionary');
               if (countResult.length > 0 && countResult[0].values.length > 0) {
                 console.log('✅ English Dictionary database loaded with', countResult[0].values[0][0], 'entries');
-                // Show dictionary toggle button if viewing English Bible
-                const dictToggle = document.getElementById('dictionary-toggle');
-                if (dictToggle && CURRENT_LANGUAGE === 'english') {
-                  dictToggle.style.display = 'flex';
-                  updateDictionaryToggleButton();
-                }
+                // Update dictionary selector
+                updateDictionarySelector();
                 // Reload verses if we're already viewing English Bible
                 if (CURRENT_LANGUAGE === 'english' && CURRENT_BIBLE) {
                   setTimeout(() => loadVerses(), 100);
@@ -1916,6 +1913,32 @@
           }
         } catch (englishDictErr) {
           console.warn('⚠️ Could not load English dictionary:', englishDictErr);
+        }
+        
+        // Load Robinson's Morphological Analysis Dictionary
+        try {
+          console.log('📚 Loading Robinson\'s Morphological Analysis Dictionary...');
+          
+          if (typeof initSqlJs !== 'undefined') {
+            const robinsonDictRes = await fetch('dictionary/robinson_morphological.SQLite3');
+            if (robinsonDictRes.ok) {
+              const robinsonDictArrayBuffer = await robinsonDictRes.arrayBuffer();
+              SQL = await initSqlJs({
+                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+              });
+              ROBINSON_DICTIONARY_DB = new SQL.Database(new Uint8Array(robinsonDictArrayBuffer));
+              const countResult = ROBINSON_DICTIONARY_DB.exec('SELECT COUNT(*) FROM dictionary');
+              if (countResult.length > 0 && countResult[0].values.length > 0) {
+                console.log('✅ Robinson\'s Morphological Dictionary loaded with', countResult[0].values[0][0], 'entries');
+                // Update dictionary selector
+                updateDictionarySelector();
+              }
+            } else {
+              console.warn('⚠️ Robinson dictionary file not found, skipping');
+            }
+          }
+        } catch (robinsonDictErr) {
+          console.warn('⚠️ Could not load Robinson dictionary:', robinsonDictErr);
         }
         
         // Load Tamil Bible
@@ -2338,16 +2361,8 @@
         return; // Invalid selection
       }
       
-      // Show dictionary toggle for Tamil and English languages (if dictionary is loaded)
-      const dictToggle = document.getElementById('dictionary-toggle');
-      if (dictToggle) {
-        const hasTamilDict = CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB;
-        const hasEnglishDict = CURRENT_LANGUAGE === 'english' && ENGLISH_DICTIONARY_DB;
-        dictToggle.style.display = (hasTamilDict || hasEnglishDict) ? 'flex' : 'none';
-        if (hasTamilDict || hasEnglishDict) {
-          updateDictionaryToggleButton();
-        }
-      }
+      // Update dictionary selector based on available dictionaries
+      updateDictionarySelector();
       
       // Load last read position for the new language
       const lastPos = loadLastReadPosition();
@@ -2664,12 +2679,14 @@
           const verseKey = `${bookIndex}-${chapterIndex}-${verseIndex}`;
           const isSelected = SELECTED_VERSES.has(verseKey);
           const selectedClass = isSelected ? 'verse-selected' : '';
-          // Make words in verse clickable for dictionary lookup (for Tamil and English, if dictionary is enabled, and only if word exists in dictionary)
+          // Make words in verse clickable for dictionary lookup (if dictionary is enabled and selected)
           let verseWithDictionary = verseText;
-          if (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB && DICTIONARY_ENABLED) {
-            verseWithDictionary = makeWordsClickable(verseText);
-          } else if (CURRENT_LANGUAGE === 'english' && ENGLISH_DICTIONARY_DB && DICTIONARY_ENABLED) {
-            verseWithDictionary = makeEnglishWordsClickable(verseText);
+          if (DICTIONARY_ENABLED && SELECTED_DICTIONARY) {
+            if (CURRENT_LANGUAGE === 'tamil' && SELECTED_DICTIONARY === 'tamil' && DICTIONARY_DB) {
+              verseWithDictionary = makeWordsClickable(verseText);
+            } else if (CURRENT_LANGUAGE === 'english' && (SELECTED_DICTIONARY === 'easton' || SELECTED_DICTIONARY === 'robinson')) {
+              verseWithDictionary = makeEnglishWordsClickable(verseText);
+            }
           }
           html += `<p data-verse-key="${verseKey}" class="${selectedClass}" 
             oncontextmenu="event.preventDefault(); return false;"
@@ -2825,33 +2842,53 @@
       return result;
     }
     
-    // Make English words clickable for dictionary lookup (only if they exist in dictionary)
+    // Make English words clickable for dictionary lookup (only if they exist in selected dictionary)
     function makeEnglishWordsClickable(text) {
-      if (!ENGLISH_DICTIONARY_DB) {
+      if (!SELECTED_DICTIONARY) {
+        return text;
+      }
+      
+      let dictDB = null;
+      if (SELECTED_DICTIONARY === 'easton' && ENGLISH_DICTIONARY_DB) {
+        dictDB = ENGLISH_DICTIONARY_DB;
+      } else if (SELECTED_DICTIONARY === 'robinson' && ROBINSON_DICTIONARY_DB) {
+        dictDB = ROBINSON_DICTIONARY_DB;
+      }
+      
+      if (!dictDB) {
         return text;
       }
       if (!text || text.trim() === '') return text;
       
       // Match English words (2+ alphabetic characters, case-insensitive)
-      // Only make words clickable if they exist in the dictionary
+      // Only make words clickable if they exist in the selected dictionary
       const result = text.replace(/\b([A-Za-z]{2,})\b/g, (match) => {
         // Check if word exists in dictionary (quick check)
         try {
-          // Convert to title case (first letter uppercase, rest lowercase) for dictionary lookup
-          const titleCaseWord = match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
-          const escapedWord = titleCaseWord.replace(/'/g, "''");
-          
-          // Check if word exists in dictionary table (case-insensitive search)
-          let query = `SELECT topic FROM dictionary WHERE LOWER(topic) = LOWER('${escapedWord}') LIMIT 1`;
-          let result = ENGLISH_DICTIONARY_DB.exec(query);
-          
-          // Only make clickable if word exists in dictionary
-          if (result.length > 0 && result[0].values.length > 0) {
-            const escaped = match.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            return `<span class="dictionary-word" data-word="${escaped}" 
-              onclick="lookupDictionary('${escaped}'); event.stopPropagation(); event.preventDefault(); return false;"
-              ontouchstart="event.stopPropagation();"
-              onmousedown="event.stopPropagation();">${match}</span>`;
+          if (SELECTED_DICTIONARY === 'easton') {
+            // Easton's dictionary: use title case
+            const titleCaseWord = match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
+            const escapedWord = titleCaseWord.replace(/'/g, "''");
+            let query = `SELECT topic FROM dictionary WHERE LOWER(topic) = LOWER('${escapedWord}') LIMIT 1`;
+            let result = dictDB.exec(query);
+            if (result.length > 0 && result[0].values.length > 0) {
+              const escaped = match.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+              return `<span class="dictionary-word" data-word="${escaped}" 
+                onclick="lookupDictionary('${escaped}'); event.stopPropagation(); event.preventDefault(); return false;"
+                ontouchstart="event.stopPropagation();"
+                onmousedown="event.stopPropagation();">${match}</span>`;
+            }
+          } else if (SELECTED_DICTIONARY === 'robinson') {
+            // Robinson's dictionary: check exact match first (for codes like "A-APF")
+            let query = `SELECT topic FROM dictionary WHERE topic = '${match}' LIMIT 1`;
+            let result = dictDB.exec(query);
+            if (result.length > 0 && result[0].values.length > 0) {
+              const escaped = match.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+              return `<span class="dictionary-word" data-word="${escaped}" 
+                onclick="lookupDictionary('${escaped}'); event.stopPropagation(); event.preventDefault(); return false;"
+                ontouchstart="event.stopPropagation();"
+                onmousedown="event.stopPropagation();">${match}</span>`;
+            }
           }
         } catch (err) {
           // If error, don't make clickable
@@ -2867,33 +2904,40 @@
     
     // Lookup word in dictionary
     function lookupDictionary(word) {
-      // Determine which dictionary to use based on current language
-      const dictDB = CURRENT_LANGUAGE === 'english' ? ENGLISH_DICTIONARY_DB : DICTIONARY_DB;
-      
-      if (!dictDB) {
-        alert('Dictionary not loaded yet. Please wait...');
+      if (!SELECTED_DICTIONARY) {
+        alert('No dictionary selected. Please select a dictionary first.');
         return;
       }
       
       try {
         // Escape single quotes in word for SQL query
         const escapedWord = word.replace(/'/g, "''");
-        let result;
         let topic, definition;
+        let foundInDict = '';
+        let dictDB = null;
         
-        if (CURRENT_LANGUAGE === 'english') {
-          // English dictionary lookup (case-insensitive)
-          const query = `SELECT topic, definition FROM dictionary WHERE LOWER(topic) = LOWER('${escapedWord}') LIMIT 1`;
-          result = dictDB.exec(query);
-          
-          if (result.length > 0 && result[0].values.length > 0) {
-            [topic, definition] = result[0].values[0];
-          }
-        } else {
+        // Get the selected dictionary database
+        if (SELECTED_DICTIONARY === 'tamil' && DICTIONARY_DB) {
+          dictDB = DICTIONARY_DB;
+          foundInDict = 'Tamil';
+        } else if (SELECTED_DICTIONARY === 'easton' && ENGLISH_DICTIONARY_DB) {
+          dictDB = ENGLISH_DICTIONARY_DB;
+          foundInDict = 'Easton';
+        } else if (SELECTED_DICTIONARY === 'robinson' && ROBINSON_DICTIONARY_DB) {
+          dictDB = ROBINSON_DICTIONARY_DB;
+          foundInDict = 'Robinson';
+        }
+        
+        if (!dictDB) {
+          alert('Selected dictionary not loaded yet. Please wait...');
+          return;
+        }
+        
+        if (SELECTED_DICTIONARY === 'tamil') {
           // Tamil dictionary lookup (with variations support)
           // First, check if word exists in words table (variations)
           let query = `SELECT standard_form FROM words WHERE variation = '${escapedWord}' LIMIT 1`;
-          result = dictDB.exec(query);
+          let result = dictDB.exec(query);
           let standardWord = word;
           
           if (result.length > 0 && result[0].values.length > 0) {
@@ -2910,6 +2954,29 @@
           if (result.length > 0 && result[0].values.length > 0) {
             [topic, definition] = result[0].values[0];
           }
+        } else if (SELECTED_DICTIONARY === 'easton') {
+          // Easton's dictionary lookup (case-insensitive)
+          const query = `SELECT topic, definition FROM dictionary WHERE LOWER(topic) = LOWER('${escapedWord}') LIMIT 1`;
+          const result = dictDB.exec(query);
+          
+          if (result.length > 0 && result[0].values.length > 0) {
+            [topic, definition] = result[0].values[0];
+          }
+        } else if (SELECTED_DICTIONARY === 'robinson') {
+          // Robinson's dictionary lookup (try exact match first, then case-insensitive)
+          let query = `SELECT topic, definition FROM dictionary WHERE topic = '${escapedWord}' LIMIT 1`;
+          let result = dictDB.exec(query);
+          
+          if (result.length > 0 && result[0].values.length > 0) {
+            [topic, definition] = result[0].values[0];
+          } else {
+            // Try case-insensitive match
+            query = `SELECT topic, definition FROM dictionary WHERE LOWER(topic) = LOWER('${escapedWord}') LIMIT 1`;
+            result = dictDB.exec(query);
+            if (result.length > 0 && result[0].values.length > 0) {
+              [topic, definition] = result[0].values[0];
+            }
+          }
         }
         
         const modal = document.getElementById('dictionary-modal');
@@ -2917,7 +2984,12 @@
         const content = document.getElementById('dictionary-content');
         
         if (topic && definition) {
-          title.textContent = `📖 ${topic}`;
+          // Show dictionary source if English
+          if (CURRENT_LANGUAGE === 'english' && foundInDict) {
+            title.textContent = `📖 ${topic} (${foundInDict})`;
+          } else {
+            title.textContent = `📖 ${topic}`;
+          }
           content.innerHTML = definition;
           modal.classList.add('active');
         } else {
@@ -2941,15 +3013,25 @@
     }
     
     // Toggle dictionary highlighting on/off
-    function toggleDictionary() {
-      DICTIONARY_ENABLED = !DICTIONARY_ENABLED;
-      updateDictionaryToggleButton();
+    // Select dictionary from dropdown
+    function selectDictionary() {
+      const selector = document.getElementById('dictionary-selector');
+      if (!selector) return;
+      
+      const selectedValue = selector.value;
+      
+      if (selectedValue === 'off') {
+        DICTIONARY_ENABLED = false;
+        SELECTED_DICTIONARY = null;
+      } else {
+        DICTIONARY_ENABLED = true;
+        SELECTED_DICTIONARY = selectedValue;
+      }
+      
       // Reload current verses to apply the change
-      // Only reload if we're viewing the Bible and have a current Bible loaded
       if (CURRENT_BIBLE && currentView === 'bible') {
         const bookSelect = document.getElementById('book-select');
         const chapterSelect = document.getElementById('chapter-select');
-        // Only reload if both selects have values
         if (bookSelect && chapterSelect && bookSelect.value && chapterSelect.value) {
           loadVerses();
         }
@@ -2959,7 +3041,70 @@
       saveUserSettings();
     }
     
-    // Update dictionary toggle button text and appearance
+    // Update dictionary selector dropdown
+    function updateDictionarySelector() {
+      const selector = document.getElementById('dictionary-selector');
+      const toggle = document.getElementById('dictionary-toggle');
+      
+      if (!selector) return;
+      
+      // Determine available dictionaries
+      let availableDicts = [];
+      
+      if (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB) {
+        availableDicts.push({ value: 'tamil', label: '📖 Tamil Dictionary' });
+      }
+      
+      if (CURRENT_LANGUAGE === 'english') {
+        if (ENGLISH_DICTIONARY_DB) {
+          availableDicts.push({ value: 'easton', label: '📖 Easton Dictionary' });
+        }
+        if (ROBINSON_DICTIONARY_DB) {
+          availableDicts.push({ value: 'robinson', label: '📖 Robinson Morphological' });
+        }
+      }
+      
+      // Clear existing options
+      selector.innerHTML = '<option value="off">📖 Dictionary OFF</option>';
+      
+      // Add available dictionaries
+      availableDicts.forEach(dict => {
+        const option = document.createElement('option');
+        option.value = dict.value;
+        option.textContent = dict.label;
+        if (SELECTED_DICTIONARY === dict.value) {
+          option.selected = true;
+        }
+        selector.appendChild(option);
+      });
+      
+      // Set selector value based on SELECTED_DICTIONARY and DICTIONARY_ENABLED
+      if (DICTIONARY_ENABLED && SELECTED_DICTIONARY) {
+        selector.value = SELECTED_DICTIONARY;
+      } else {
+        selector.value = 'off';
+      }
+      
+      // Show/hide selector and toggle
+      if (availableDicts.length > 1) {
+        // Multiple dictionaries: show dropdown
+        selector.style.display = 'flex';
+        if (toggle) toggle.style.display = 'none';
+      } else if (availableDicts.length === 1) {
+        // Single dictionary: show toggle button
+        selector.style.display = 'none';
+        if (toggle) {
+          toggle.style.display = 'flex';
+          updateDictionaryToggleButton();
+        }
+      } else {
+        // No dictionaries: hide both
+        selector.style.display = 'none';
+        if (toggle) toggle.style.display = 'none';
+      }
+    }
+    
+    // Update dictionary toggle button text and appearance (for single dictionary)
     function updateDictionaryToggleButton() {
       const dictToggle = document.getElementById('dictionary-toggle');
       const dictText = document.getElementById('dictionary-text');
@@ -2975,6 +3120,38 @@
           dictToggle.style.opacity = '0.7';
         }
       }
+    }
+    
+    // Toggle dictionary (for single dictionary mode)
+    function toggleDictionary() {
+      DICTIONARY_ENABLED = !DICTIONARY_ENABLED;
+      if (DICTIONARY_ENABLED) {
+        // Set the only available dictionary
+        if (CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB) {
+          SELECTED_DICTIONARY = 'tamil';
+        } else if (CURRENT_LANGUAGE === 'english') {
+          if (ENGLISH_DICTIONARY_DB) {
+            SELECTED_DICTIONARY = 'easton';
+          } else if (ROBINSON_DICTIONARY_DB) {
+            SELECTED_DICTIONARY = 'robinson';
+          }
+        }
+      } else {
+        SELECTED_DICTIONARY = null;
+      }
+      updateDictionaryToggleButton();
+      
+      // Reload current verses to apply the change
+      if (CURRENT_BIBLE && currentView === 'bible') {
+        const bookSelect = document.getElementById('book-select');
+        const chapterSelect = document.getElementById('chapter-select');
+        if (bookSelect && chapterSelect && bookSelect.value && chapterSelect.value) {
+          loadVerses();
+        }
+      }
+      
+      // Save settings
+      saveUserSettings();
     }
     
     // === LONG PRESS HANDLING FOR VERSE SELECTION ===
@@ -3800,6 +3977,7 @@
         currentLanguage: CURRENT_LANGUAGE,
         parallelMode: PARALLEL_MODE,
         dictionaryEnabled: DICTIONARY_ENABLED,
+        selectedDictionary: SELECTED_DICTIONARY,
         parallelLang1: PARALLEL_LANG1,
         parallelLang2: PARALLEL_LANG2,
         currentView: currentView
@@ -3816,6 +3994,7 @@
           if (settings.currentLanguage) CURRENT_LANGUAGE = settings.currentLanguage;
           if (typeof settings.parallelMode === 'boolean') PARALLEL_MODE = settings.parallelMode;
           if (typeof settings.dictionaryEnabled === 'boolean') DICTIONARY_ENABLED = settings.dictionaryEnabled;
+          if (settings.selectedDictionary) SELECTED_DICTIONARY = settings.selectedDictionary;
           if (settings.parallelLang1) PARALLEL_LANG1 = settings.parallelLang1;
           if (settings.parallelLang2) PARALLEL_LANG2 = settings.parallelLang2;
           if (settings.currentView) currentView = settings.currentView;
@@ -3839,8 +4018,8 @@
             }
           }
           
-          // Update dictionary toggle button
-          updateDictionaryToggleButton();
+          // Update dictionary selector
+          updateDictionarySelector();
           
           // Restore the saved view/tab (will be done after UI is ready)
           // Note: We don't call showTab here to avoid saving during load
@@ -4118,9 +4297,7 @@
           const dictToggle = document.getElementById('dictionary-toggle');
           if (dictToggle) {
             const hasTamilDict = CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB;
-            const hasEnglishDict = CURRENT_LANGUAGE === 'english' && ENGLISH_DICTIONARY_DB;
-            dictToggle.style.display = (hasTamilDict || hasEnglishDict) ? 'flex' : 'none';
-            updateDictionaryToggleButton();
+            updateDictionarySelector();
           }
           // Ensure parallel toggle is visible if Bibles are available
           const parallelToggle = document.getElementById('parallel-toggle');
@@ -4914,7 +5091,7 @@
       const dictToggle = document.getElementById('dictionary-toggle');
       if (dictToggle) {
         const hasTamilDict = CURRENT_LANGUAGE === 'tamil' && DICTIONARY_DB;
-        const hasEnglishDict = CURRENT_LANGUAGE === 'english' && ENGLISH_DICTIONARY_DB;
+        const hasEnglishDict = CURRENT_LANGUAGE === 'english' && (ENGLISH_DICTIONARY_DB || ROBINSON_DICTIONARY_DB);
         dictToggle.style.display = (hasTamilDict || hasEnglishDict) ? 'flex' : 'none';
         updateDictionaryToggleButton();
       }

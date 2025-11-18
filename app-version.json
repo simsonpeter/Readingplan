@@ -29,6 +29,10 @@
     "dictionary/easton_dictionary.SQLite3": {
       "version": "1.0.0",
       "lastModified": "2025-11-18T18:10:33.128Z"
+    },
+    "dictionary/robinson_morphological.SQLite3": {
+      "version": "1.0.0",
+      "lastModified": "2025-11-18T18:23:10.482Z"
     }
   }
 }
