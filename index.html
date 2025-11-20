@@ -1088,16 +1088,27 @@
           </div>
         </div>
       </div>
-      <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center;">
+      <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center; flex-wrap: wrap;">
         <button onclick="goToDevotionDay(-1)" class="nav-btn" style="flex: 1; max-width: 150px;">
           <i class="fas fa-chevron-left"></i> Previous
         </button>
         <button onclick="goToDevotionToday()" class="nav-btn" id="devotion-today-btn" style="flex: 1; max-width: 150px; display: none;">
           <i class="fas fa-calendar-day"></i> Today
         </button>
+        <button onclick="showDevotionDatePicker()" class="nav-btn" style="flex: 1; max-width: 150px;">
+          <i class="fas fa-calendar-alt"></i> Select Date
+        </button>
         <button onclick="goToDevotionDay(1)" class="nav-btn" style="flex: 1; max-width: 150px;">
           Next <i class="fas fa-chevron-right"></i>
         </button>
+      </div>
+      <div id="devotion-date-picker" style="display: none; margin-top: 16px; padding: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 14px;">
+        <div style="margin-bottom: 12px; font-weight: 600; color: var(--text);">Select Date:</div>
+        <input type="date" id="devotion-date-input" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 1rem; margin-bottom: 12px;">
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button onclick="hideDevotionDatePicker()" class="nav-btn" style="padding: 8px 16px;">Cancel</button>
+          <button onclick="goToDevotionDate()" class="nav-btn" style="padding: 8px 16px; background: var(--accent); color: white;">Go</button>
+        </div>
       </div>
     </div>
     <div id="bible-view">
@@ -4265,6 +4276,59 @@
       const now = new Date();
       const startOfYear = new Date(now.getFullYear(), 0, 1);
       const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+      loadDevotion(dayOfYear);
+      if (currentView !== 'devotion') showTab('devotion');
+    }
+    function showDevotionDatePicker() {
+      const picker = document.getElementById('devotion-date-picker');
+      const dateInput = document.getElementById('devotion-date-input');
+      if (picker && dateInput) {
+        // Set default date to current devotion date or today
+        const now = new Date();
+        const year = now.getFullYear();
+        let targetDate;
+        if (currentDevotionDayIndex !== null) {
+          targetDate = new Date(year, 0, 1);
+          targetDate.setDate(targetDate.getDate() + currentDevotionDayIndex);
+        } else {
+          targetDate = now;
+        }
+        dateInput.value = targetDate.toISOString().split('T')[0];
+        picker.style.display = 'block';
+        // Scroll picker into view
+        setTimeout(() => {
+          picker.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    }
+    function hideDevotionDatePicker() {
+      const picker = document.getElementById('devotion-date-picker');
+      if (picker) {
+        picker.style.display = 'none';
+      }
+    }
+    function goToDevotionDate() {
+      const dateInput = document.getElementById('devotion-date-input');
+      if (!dateInput || !dateInput.value) {
+        alert('Please select a date');
+        return;
+      }
+      
+      const selectedDate = new Date(dateInput.value + 'T00:00:00');
+      const now = new Date();
+      const year = selectedDate.getFullYear();
+      
+      // Calculate day of year for selected date
+      const startOfYear = new Date(year, 0, 1);
+      const dayOfYear = Math.floor((selectedDate - startOfYear) / 86400000);
+      
+      // Only allow dates in the current year (or adjust if you want to support multiple years)
+      if (year !== now.getFullYear()) {
+        alert('Please select a date from the current year');
+        return;
+      }
+      
+      hideDevotionDatePicker();
       loadDevotion(dayOfYear);
       if (currentView !== 'devotion') showTab('devotion');
     }
