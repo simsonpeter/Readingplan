@@ -4169,20 +4169,22 @@
             let inQuote = false;
             let lastWasEmpty = false;
             
-            // Section headers to style as headings
+            // Section headers to style as headings (must be exact match or start of line)
             const sectionHeaders = [
               'மனப்பாட வசனம்',
-              'இன்றைய தியானம்',
+              'தியானம்',
               'இன்றைய மேற்கோள்',
               'பரிந்துரைக்கப்படும் புத்தகம்',
               'ஜெபம்',
               'உங்களுக்கு ஒரு வார்த்தை',
+              'ஆசிரியர்',
               'Memory Verse',
               'Today\'s Meditation',
               'Today\'s Quote',
               'Recommended Book',
               'Prayer',
-              'A Word for You'
+              'A Word for You',
+              'Author'
             ];
             
             for (let i = 0; i < lines.length; i++) {
@@ -4199,15 +4201,19 @@
               }
               
               lastWasEmpty = false;
-              const isHeader = sectionHeaders.some(header => line.includes(header));
+              // Check if line exactly matches or starts with a section header
+              const trimmedLine = line.trim();
+              const isHeader = sectionHeaders.some(header => {
+                return trimmedLine === header || trimmedLine.startsWith(header + ':') || trimmedLine.startsWith(header + ' ');
+              });
               
               // Check if line is a quote (starts with " or contains quote marks)
               if (line.startsWith('"') || (line.includes('"') && line.length < 200 && line.match(/^["""].*["""]/))) {
                 html += `<div style="margin: 24px 0; padding: 20px; background: var(--bg); border-left: 4px solid var(--accent); border-radius: 8px; font-style: italic; color: var(--text-secondary); line-height: 1.8; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">${line}</div>`;
                 inQuote = true;
               } else if (isHeader) {
-                // Section header
-                html += `<h3 style="margin: 32px 0 16px 0; padding-bottom: 8px; color: var(--accent); font-size: 1.3rem; font-weight: 600; border-bottom: 2px solid var(--border); word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">${line}</h3>`;
+                // Section header - bold title
+                html += `<h3 style="margin: 32px 0 16px 0; padding-bottom: 8px; color: var(--accent); font-size: 1.3rem; font-weight: 700; border-bottom: 2px solid var(--border); word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;"><strong>${line}</strong></h3>`;
                 inQuote = false;
               } else if (line.match(/^[A-Za-z\s]+:$/) || line.match(/^[அ-ஹ\s]+:$/)) {
                 // Sub-heading (ends with colon)
