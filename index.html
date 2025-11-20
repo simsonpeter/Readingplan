@@ -4203,17 +4203,38 @@
               lastWasEmpty = false;
               // Check if line exactly matches or starts with a section header
               const trimmedLine = line.trim();
-              const isHeader = sectionHeaders.some(header => {
-                return trimmedLine === header || trimmedLine.startsWith(header + ':') || trimmedLine.startsWith(header + ' ');
-              });
+              let matchedHeader = null;
+              for (const header of sectionHeaders) {
+                if (trimmedLine === header || trimmedLine.startsWith(header + ':') || trimmedLine.startsWith(header + ' ')) {
+                  matchedHeader = header;
+                  break;
+                }
+              }
+              const isHeader = matchedHeader !== null;
               
               // Check if line is a quote (starts with " or contains quote marks)
               if (line.startsWith('"') || (line.includes('"') && line.length < 200 && line.match(/^["""].*["""]/))) {
                 html += `<div style="margin: 24px 0; padding: 20px; background: var(--bg); border-left: 4px solid var(--accent); border-radius: 8px; font-style: italic; color: var(--text-secondary); line-height: 1.8; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">${line}</div>`;
                 inQuote = true;
               } else if (isHeader) {
-                // Section header - bold title
-                html += `<h3 style="margin: 32px 0 16px 0; padding-bottom: 8px; color: var(--accent); font-size: 1.3rem; font-weight: 700; border-bottom: 2px solid var(--border); word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;"><strong>${line}</strong></h3>`;
+                // Section header - only header text is bold
+                let headerHtml = '';
+                if (trimmedLine === matchedHeader) {
+                  // Exact match - only header is bold
+                  headerHtml = `<strong>${matchedHeader}</strong>`;
+                } else if (trimmedLine.startsWith(matchedHeader + ':')) {
+                  // Header with colon - header is bold, rest is normal
+                  const restOfLine = trimmedLine.substring(matchedHeader.length);
+                  headerHtml = `<strong>${matchedHeader}</strong>${restOfLine}`;
+                } else if (trimmedLine.startsWith(matchedHeader + ' ')) {
+                  // Header with space - header is bold, rest is normal
+                  const restOfLine = trimmedLine.substring(matchedHeader.length);
+                  headerHtml = `<strong>${matchedHeader}</strong>${restOfLine}`;
+                } else {
+                  // Fallback - make entire line bold
+                  headerHtml = `<strong>${line}</strong>`;
+                }
+                html += `<h3 style="margin: 32px 0 16px 0; padding-bottom: 8px; color: var(--accent); font-size: 1.3rem; font-weight: 400; border-bottom: 2px solid var(--border); word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">${headerHtml}</h3>`;
                 inQuote = false;
               } else if (line.match(/^[A-Za-z\s]+:$/) || line.match(/^[அ-ஹ\s]+:$/)) {
                 // Sub-heading (ends with colon)
