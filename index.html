@@ -4217,24 +4217,26 @@
                 html += `<div style="margin: 24px 0; padding: 20px; background: var(--bg); border-left: 4px solid var(--accent); border-radius: 8px; font-style: italic; color: var(--text-secondary); line-height: 1.8; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">${line}</div>`;
                 inQuote = true;
               } else if (isHeader) {
-                // Section header - only header text is bold
-                let headerHtml = '';
+                // Section header - header on its own line, text after starts on next line
+                let restOfLine = '';
                 if (trimmedLine === matchedHeader) {
-                  // Exact match - only header is bold
-                  headerHtml = `<strong>${matchedHeader}</strong>`;
+                  // Exact match - only header, no additional text
+                  restOfLine = '';
                 } else if (trimmedLine.startsWith(matchedHeader + ':')) {
-                  // Header with colon - header is bold, rest is normal
-                  const restOfLine = trimmedLine.substring(matchedHeader.length);
-                  headerHtml = `<strong>${matchedHeader}</strong>${restOfLine}`;
+                  // Header with colon - extract text after colon
+                  restOfLine = trimmedLine.substring(matchedHeader.length + 1).trim();
                 } else if (trimmedLine.startsWith(matchedHeader + ' ')) {
-                  // Header with space - header is bold, rest is normal
-                  const restOfLine = trimmedLine.substring(matchedHeader.length);
-                  headerHtml = `<strong>${matchedHeader}</strong>${restOfLine}`;
-                } else {
-                  // Fallback - make entire line bold
-                  headerHtml = `<strong>${line}</strong>`;
+                  // Header with space - extract text after space
+                  restOfLine = trimmedLine.substring(matchedHeader.length + 1).trim();
                 }
-                html += `<h3 style="margin: 32px 0 16px 0; padding-bottom: 8px; color: var(--accent); font-size: 1.3rem; font-weight: 400; border-bottom: 2px solid var(--border); word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">${headerHtml}</h3>`;
+                
+                // Header on its own line (bold)
+                html += `<h3 style="margin: 32px 0 16px 0; padding-bottom: 8px; color: var(--accent); font-size: 1.3rem; font-weight: 400; border-bottom: 2px solid var(--border); word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;"><strong>${matchedHeader}</strong></h3>`;
+                
+                // If there's text after the header, display it as a paragraph on the next line
+                if (restOfLine) {
+                  html += `<p style="margin: 16px 0; line-height: 1.9; color: var(--text); text-align: justify; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">${restOfLine}</p>`;
+                }
                 inQuote = false;
               } else if (line.match(/^[A-Za-z\s]+:$/) || line.match(/^[அ-ஹ\s]+:$/)) {
                 // Sub-heading (ends with colon)
