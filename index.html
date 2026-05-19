@@ -3470,17 +3470,7 @@
         // Share reading plan (today or calendar tab)
         // For today tab, always share today's content
         // For calendar tab, share the currently selected day's content
-        let dayIndexToShare = currentDayIndex;
-        
-        if (currentView === 'today') {
-          // Always share the true local calendar day.
-          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
-        }
-        
-        // If no day index is set, use today's index as fallback
-        if (dayIndexToShare === null || dayIndexToShare === undefined) {
-          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
-        }
+        const dayIndexToShare = getReadingShareDayIndex();
         
         try {
           const blob = await shareReadingsAsImage(dayIndexToShare);
@@ -3528,17 +3518,7 @@
         // Share reading plan as text (today or calendar tab)
         // For today tab, always share today's content
         // For calendar tab, share the currently selected day's content
-        let dayIndexToShare = currentDayIndex;
-        
-        if (currentView === 'today') {
-          // Always share the true local calendar day.
-          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
-        }
-        
-        // If no day index is set, use today's index as fallback
-        if (dayIndexToShare === null || dayIndexToShare === undefined) {
-          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
-        }
+        const dayIndexToShare = getReadingShareDayIndex();
         
         await shareReadingsAsText(dayIndexToShare);
       }
@@ -3966,6 +3946,14 @@
     }
     function getTodayDayIndex() {
       return getDayIndexForDate(new Date());
+    }
+    function getReadingShareDayIndex() {
+      // Today/devotion/bible views should always share today's reading plan.
+      // Calendar view may intentionally share a user-selected day.
+      if (currentView === 'calendar' && currentDayIndex !== null && currentDayIndex !== undefined) {
+        return currentDayIndex;
+      }
+      return Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
     }
     function isDarkMode() { return document.body.classList.contains('dark-mode'); }
     function setTheme(dark) {
@@ -4487,14 +4475,9 @@
       if (view === 'calendar') {
         renderFullCalendar();
       } else if (view === 'today') {
-        // Always re-render readings when switching to today view to ensure date is visible
-        if (currentDayIndex !== null) {
-          renderReadings(currentDayIndex);
-        } else {
-          // If no current day index, calculate today's index
-          const dayOfYear = getTodayDayIndex();
-          renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
-        }
+        // Today tab should always resolve back to today's reading.
+        const dayOfYear = getTodayDayIndex();
+        renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
       } else if (view === 'devotion') {
         // Load devotion for today
         loadDevotion();
@@ -5026,19 +5009,7 @@
         }
       }
       
-      // For today tab, always share today's content
-      // For calendar tab, share the currently selected day's content
-      let dayIndexToShare = currentDayIndex;
-      
-      if (currentView === 'today') {
-        // Always share the true local calendar day.
-        dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
-      }
-      
-      // If no day index is set, use today's index as fallback
-      if (dayIndexToShare === null || dayIndexToShare === undefined) {
-        dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
-      }
+      const dayIndexToShare = getReadingShareDayIndex();
       
       // Share reading plan for today or selected day
       try {
