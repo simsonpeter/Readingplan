@@ -2255,9 +2255,7 @@
         }));
 
         // Render today
-        const now = new Date();
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+        const dayOfYear = getTodayDayIndex();
         renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
 
         document.getElementById('book-select').disabled = false;
@@ -3475,25 +3473,13 @@
         let dayIndexToShare = currentDayIndex;
         
         if (currentView === 'today') {
-          // Calculate today's day index to ensure we share today's content
-          const now = new Date();
-          const startOfYear = new Date(now.getFullYear(), 0, 1);
-          startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
-          const nowNormalized = new Date(now);
-          nowNormalized.setHours(12, 0, 0, 0);
-          const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
-          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+          // Always share the true local calendar day.
+          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
         }
         
         // If no day index is set, use today's index as fallback
         if (dayIndexToShare === null || dayIndexToShare === undefined) {
-          const now = new Date();
-          const startOfYear = new Date(now.getFullYear(), 0, 1);
-          startOfYear.setHours(12, 0, 0, 0);
-          const nowNormalized = new Date(now);
-          nowNormalized.setHours(12, 0, 0, 0);
-          const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
-          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
         }
         
         try {
@@ -3545,25 +3531,13 @@
         let dayIndexToShare = currentDayIndex;
         
         if (currentView === 'today') {
-          // Calculate today's day index to ensure we share today's content
-          const now = new Date();
-          const startOfYear = new Date(now.getFullYear(), 0, 1);
-          startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
-          const nowNormalized = new Date(now);
-          nowNormalized.setHours(12, 0, 0, 0);
-          const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
-          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+          // Always share the true local calendar day.
+          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
         }
         
         // If no day index is set, use today's index as fallback
         if (dayIndexToShare === null || dayIndexToShare === undefined) {
-          const now = new Date();
-          const startOfYear = new Date(now.getFullYear(), 0, 1);
-          startOfYear.setHours(12, 0, 0, 0);
-          const nowNormalized = new Date(now);
-          nowNormalized.setHours(12, 0, 0, 0);
-          const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
-          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+          dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
         }
         
         await shareReadingsAsText(dayIndexToShare);
@@ -3984,6 +3958,15 @@
     let currentDayIndex = null;
     let currentDevotionDayIndex = null;
     let currentView = 'today';
+    function getDayIndexForDate(date) {
+      const year = date.getFullYear();
+      const utcDay = Date.UTC(year, date.getMonth(), date.getDate());
+      const utcYearStart = Date.UTC(year, 0, 1);
+      return Math.floor((utcDay - utcYearStart) / 86400000);
+    }
+    function getTodayDayIndex() {
+      return getDayIndexForDate(new Date());
+    }
     function isDarkMode() { return document.body.classList.contains('dark-mode'); }
     function setTheme(dark) {
       if (dark) {
@@ -4386,38 +4369,19 @@
       render('morning-list', en.morning, ta.morning);
       render('evening-list', en.evening, ta.evening);
       currentDayIndex = dayIndex;
-      // Calculate day of year more reliably to avoid DST/timezone issues
-      const startOfYear = new Date(year, 0, 1);
-      startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
-      const nowNormalized = new Date(now);
-      nowNormalized.setHours(12, 0, 0, 0);
-      const currentDayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
+      const currentDayOfYear = getTodayDayIndex();
       const isToday = (dayIndex === currentDayOfYear && now.getFullYear() === year);
       document.getElementById('today-btn').style.display = isToday ? 'none' : 'flex';
     }
     function goToDay(offset) {
-      const now = new Date();
-      const year = now.getFullYear();
-      // Calculate day of year more reliably to avoid DST/timezone issues
-      const startOfYear = new Date(year, 0, 1);
-      startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
-      const nowNormalized = new Date(now);
-      nowNormalized.setHours(12, 0, 0, 0);
-      const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
+      const dayOfYear = getTodayDayIndex();
       let target = offset === 0 ? dayOfYear : (currentDayIndex !== null ? currentDayIndex + offset : dayOfYear + offset);
       target = Math.max(0, Math.min(READING_PLAN_EN.length - 1, target));
       renderReadings(target);
       if (currentView !== 'today') showTab('today');
     }
     function goToToday() {
-      const now = new Date();
-      const year = now.getFullYear();
-      // Calculate day of year more reliably to avoid DST/timezone issues
-      const startOfYear = new Date(year, 0, 1);
-      startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
-      const nowNormalized = new Date(now);
-      nowNormalized.setHours(12, 0, 0, 0);
-      const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
+      const dayOfYear = getTodayDayIndex();
       renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
       if (currentView !== 'today') showTab('today');
     }
@@ -4528,9 +4492,7 @@
           renderReadings(currentDayIndex);
         } else {
           // If no current day index, calculate today's index
-          const now = new Date();
-          const startOfYear = new Date(now.getFullYear(), 0, 1);
-          const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+          const dayOfYear = getTodayDayIndex();
           renderReadings(Math.min(READING_PLAN_EN.length - 1, dayOfYear));
         }
       } else if (view === 'devotion') {
@@ -5069,25 +5031,13 @@
       let dayIndexToShare = currentDayIndex;
       
       if (currentView === 'today') {
-        // Calculate today's day index to ensure we share today's content
-        const now = new Date();
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        startOfYear.setHours(12, 0, 0, 0); // Normalize to noon to avoid DST issues
-        const nowNormalized = new Date(now);
-        nowNormalized.setHours(12, 0, 0, 0);
-        const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
-        dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+        // Always share the true local calendar day.
+        dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
       }
       
       // If no day index is set, use today's index as fallback
       if (dayIndexToShare === null || dayIndexToShare === undefined) {
-        const now = new Date();
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        startOfYear.setHours(12, 0, 0, 0);
-        const nowNormalized = new Date(now);
-        nowNormalized.setHours(12, 0, 0, 0);
-        const dayOfYear = Math.floor((nowNormalized - startOfYear) / 86400000);
-        dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, dayOfYear);
+        dayIndexToShare = Math.min(READING_PLAN_EN.length - 1, getTodayDayIndex());
       }
       
       // Share reading plan for today or selected day
